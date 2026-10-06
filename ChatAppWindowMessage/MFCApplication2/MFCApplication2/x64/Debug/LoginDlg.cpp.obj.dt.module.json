@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "MFCApplication2\\x64\\Debug\\LoginDlg.obj",
+            "outputs": [
+                "MFCApplication2\\x64\\Debug\\LoginDlg.cpp.obj.dt.module.json",
+                "MFCApplication2\\x64\\Debug\\LoginDlg.cpp.obj.dt.d.json",
+                "MFCApplication2\\x64\\Debug\\MFCApplication2.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

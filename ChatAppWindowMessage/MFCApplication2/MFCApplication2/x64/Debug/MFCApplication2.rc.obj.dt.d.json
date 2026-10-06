@@ -1,0 +1,20 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "d:\\aamduwccc\\project\\c++\\testmfc\\mfcapplication2\\mfcapplication2.rc",
+        "ProvidedModule": "",
+        "Includes": [
+            "d:\\aamduwccc\\project\\c++\\testmfc\\mfcapplication2\\resource.h",
+            "d:\\aamduwccc\\project\\c++\\testmfc\\mfcapplication2\\targetver.h",
+            "c:\\program files (x86)\\windows kits\\10\\include\\10.0.26100.0\\shared\\sdkddkver.h",
+            "c:\\program files\\microsoft visual studio\\18\\community\\vc\\tools\\msvc\\14.51.36231\\atlmfc\\include\\afxres.h",
+            "c:\\program files (x86)\\windows kits\\10\\include\\10.0.26100.0\\um\\verrsrc.h",
+            "c:\\program files (x86)\\windows kits\\10\\include\\10.0.26100.0\\shared\\winapifamily.h",
+            "c:\\program files (x86)\\windows kits\\10\\include\\10.0.26100.0\\shared\\winpackagefamily.h",
+            "d:\\aamduwccc\\project\\c++\\testmfc\\mfcapplication2\\res\\mfcapplication2.rc2",
+            "c:\\program files\\microsoft visual studio\\18\\community\\vc\\tools\\msvc\\14.51.36231\\atlmfc\\include\\afxres.rc"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}
