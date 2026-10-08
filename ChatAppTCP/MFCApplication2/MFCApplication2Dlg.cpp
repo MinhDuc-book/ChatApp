@@ -268,6 +268,8 @@ void CMFCApplication2Dlg::StartServer() {
 		closesocket(m_receiveSocket);
 		m_receiveSocket = INVALID_SOCKET;
 	}
+
+	// allow to open connecting queue
 	listen(m_receiveSocket, SOMAXCONN);
 	m_stopping = false;
 	m_pServerThread = AfxBeginThread(TCPServerThread, // function will run in new thread

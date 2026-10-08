@@ -250,7 +250,7 @@ void CMFCApplication1Dlg::StartServer()
 		AfxMessageBox(_T("Cannot WSAStartUp"));
 		return;
 	}
-	m_receiveSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	m_receiveSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (m_receiveSocket == INVALID_SOCKET) {
 		AfxMessageBox(_T("Cannot init socket"));
 		return;
@@ -270,7 +270,7 @@ void CMFCApplication1Dlg::StartServer()
 		closesocket(m_receiveSocket);
 		m_receiveSocket = INVALID_SOCKET;
 	}
-	listen(m_receiveSocket, SOMAXCONN);
+	//listen(m_receiveSocket, SOMAXCONN);
 	m_stopping = false;
 	m_pServerThread = AfxBeginThread(TCPServerThread, // function will run in new thread
 									this, // what data send to new thread (current addr of object CMFCApplication1Dlg) ->  1st parameter of PipeServerThread
@@ -290,22 +290,14 @@ UINT CMFCApplication1Dlg::TCPServerThread(LPVOID p)
 	{
 		sockaddr_in clientAddr = {};
 		int addrLen = sizeof(clientAddr);
-		SOCKET clientSocket = accept(self->m_receiveSocket, (sockaddr*)&clientAddr, &addrLen);
 
-		if (clientSocket == INVALID_SOCKET) break;
 
-		std::wstring data;
-		wchar_t buf[1024];
-		int check;
-		while (true) {
-			check = recv(clientSocket, (char*)buf, sizeof(buf) - 1, 0);
-			if (check <= 0) break;
-			buf[check / sizeof(wchar_t)] = L'\0';
-			data = data + buf;
-			if (data.size() > 32 * 1024) break;
-		}
-		// done receive => close
-		closesocket(clientSocket);
+		wchar_t buf[4146];
+		int check = recvfrom(self->m_receiveSocket, (char*)buf, sizeof(buf) - 2, 0, (sockaddr*)&clientAddr, &addrLen);
+		if (check == SOCKET_ERROR || check <= 0) break;
+		buf[check / 2] = L'\0';
+		std::wstring data(buf);
+
 		if (data.empty() == false) {
 			CString* msg = new CString(data.c_str());
 			BOOL rs = ::PostMessage(hwnd, WM_PIPE_MSG, 0, (LPARAM)msg);
@@ -394,7 +386,7 @@ void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 
 bool CMFCApplication1Dlg::SendViaTCP(const char* targetIP, const CString& payload)
 {
-	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	SOCKET s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (s == INVALID_SOCKET) return false;
 
 	sockaddr_in addr;
@@ -403,15 +395,15 @@ bool CMFCApplication1Dlg::SendViaTCP(const char* targetIP, const CString& payloa
 	//addr.sin_addr.s_addr = inet_addr(targetIP);
 	inet_pton(AF_INET, targetIP, &addr.sin_addr);
 
-	if (connect(s, (sockaddr*)&addr, sizeof(addr)) != SOCKET_ERROR) {
-		int bytes = (payload.GetLength() + 1) * sizeof(wchar_t);
-		send(s, reinterpret_cast<const char*>(payload.GetString()), bytes, 0);
-	}
-	else {
-		AfxMessageBox(_T("Cannot connect"));
+	int bytes = (payload.GetLength() + 1) * sizeof(wchar_t);
+	int rs = sendto(s, reinterpret_cast<const char*>(payload.GetString()), bytes, 0, (sockaddr*)&addr, sizeof(addr));
+
+	closesocket(s);
+
+	if (rs == SOCKET_ERROR) {
+		AfxMessageBox(_T("Cannot send"));
 		return false;
 	}
-	closesocket(s);
 	return true;
 }
 

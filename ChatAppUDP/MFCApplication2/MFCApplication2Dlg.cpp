@@ -1,21 +1,18 @@
 
-// MFCApplication1Dlg.cpp : implementation file
+// MFCApplication2Dlg.cpp : implementation file
 //
 
 #include "pch.h"
 #include "framework.h"
-#include "MFCApplication1.h"
-#include "MFCApplication1Dlg.h"
+#include "MFCApplication2.h"
+#include "MFCApplication2Dlg.h"
 #include "afxdialogex.h"
 #include "Resource.h"
 #include <string>
-#pragma comment(lib, "ws2_32.lib")
-
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
-
 
 
 // CAboutDlg dialog used for App About
@@ -25,15 +22,15 @@ class CAboutDlg : public CDialogEx
 public:
 	CAboutDlg();
 
-// Dialog Data
+	// Dialog Data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_ABOUTBOX };
 #endif
 
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
-// Implementation
+	// Implementation
 protected:
 	DECLARE_MESSAGE_MAP()
 };
@@ -51,45 +48,45 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
 
-// CMFCApplication1Dlg dialog
+// CMFCApplication2Dlg dialog
 
 
 
-CMFCApplication1Dlg::CMFCApplication1Dlg(CWnd* pParent /*=nullptr*/)
-	: CDialogEx(IDD_MFCAPPLICATION1_DIALOG, pParent)
+CMFCApplication2Dlg::CMFCApplication2Dlg(CWnd* pParent /*=nullptr*/)
+	: CDialogEx(IDD_MFCAPPLICATION2_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
 
-void CMFCApplication1Dlg::DoDataExchange(CDataExchange* pDX)
+void CMFCApplication2Dlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CMFCApplication1Dlg, CDialogEx)
+BEGIN_MESSAGE_MAP(CMFCApplication2Dlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 
-	ON_EN_CHANGE(IDC_EDIT_MESSAGE, &CMFCApplication1Dlg::OnEnChangeEditMessage)
-	ON_BN_CLICKED(IDC_BUTTON1, &CMFCApplication1Dlg::OnBnClickedButton1)
-	ON_LBN_SELCHANGE(IDC_LIST_FRIEND, &CMFCApplication1Dlg::OnLbnSelchangeListFriend)
-	ON_EN_CHANGE(IDC_EDIT_MESSAGE_OTHER, &CMFCApplication1Dlg::OnEnChangeEditMessageOther)
-	ON_EN_CHANGE(IDC_EDIT_NOTIFICATION, &CMFCApplication1Dlg::OnEnChangeEditNotification)
+	ON_EN_CHANGE(IDC_EDIT_MESSAGE, &CMFCApplication2Dlg::OnEnChangeEditMessage)
+	ON_BN_CLICKED(IDC_BUTTON1, &CMFCApplication2Dlg::OnBnClickedButton1)
+	ON_LBN_SELCHANGE(IDC_LIST_FRIEND, &CMFCApplication2Dlg::OnLbnSelchangeListFriend)
+	ON_EN_CHANGE(IDC_EDIT_MESSAGE_OTHER, &CMFCApplication2Dlg::OnEnChangeEditMessageOther)
+	ON_EN_CHANGE(IDC_EDIT_NOTIFICATION, &CMFCApplication2Dlg::OnEnChangeEditNotification)
 
 	// use to synchro scroll edit box
-	ON_CONTROL(EN_VSCROLL, IDC_EDIT_MESSAGE_OTHER, &CMFCApplication1Dlg::OnVscrollMessageOther)
-	ON_CONTROL(EN_VSCROLL, IDC_EDIT_MESSAGE_ME, &CMFCApplication1Dlg::OnVscrollMessageMe)
+	ON_CONTROL(EN_VSCROLL, IDC_EDIT_MESSAGE_OTHER, &CMFCApplication2Dlg::OnVscrollMessageOther)
+	ON_CONTROL(EN_VSCROLL, IDC_EDIT_MESSAGE_ME, &CMFCApplication2Dlg::OnVscrollMessageMe)
 
 	// receive Win mess from other process
-	ON_MESSAGE(WM_PIPE_MSG, &CMFCApplication1Dlg::OnPipeMessage)
+	ON_MESSAGE(WM_PIPE_MSG, &CMFCApplication2Dlg::OnPipeMessage)
 	ON_WM_DESTROY()
 END_MESSAGE_MAP()
 
 
-// CMFCApplication1Dlg message handlers
+// CMFCApplication2Dlg message handlers
 
-BOOL CMFCApplication1Dlg::OnInitDialog()
+BOOL CMFCApplication2Dlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
@@ -135,13 +132,12 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 	GetDlgItem(IDC_EDIT_MESSAGE)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BUTTON1)->EnableWindow(FALSE);
 
-	// start Named pipe
 	StartServer();
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
-void CMFCApplication1Dlg::OnSysCommand(UINT nID, LPARAM lParam)
+void CMFCApplication2Dlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
 	if ((nID & 0xFFF0) == IDM_ABOUTBOX)
 	{
@@ -158,7 +154,7 @@ void CMFCApplication1Dlg::OnSysCommand(UINT nID, LPARAM lParam)
 //  to draw the icon.  For MFC applications using the document/view model,
 //  this is automatically done for you by the framework.
 
-void CMFCApplication1Dlg::OnPaint()
+void CMFCApplication2Dlg::OnPaint()
 {
 	if (IsIconic())
 	{
@@ -185,13 +181,13 @@ void CMFCApplication1Dlg::OnPaint()
 
 // The system calls this function to obtain the cursor to display while the user drags
 //  the minimized window.
-HCURSOR CMFCApplication1Dlg::OnQueryDragIcon()
+HCURSOR CMFCApplication2Dlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
 
-void CMFCApplication1Dlg::OnEnChangeEditMessage()
+void CMFCApplication2Dlg::OnEnChangeEditMessage()
 {
 	// TODO:  If this is a RICHEDIT control, the control will not
 	// send this notification unless you override the CDialogEx::OnInitDialog()
@@ -207,11 +203,11 @@ void CMFCApplication1Dlg::OnEnChangeEditMessage()
 * ====> Each len > 0: increase countLineContinous
 * ====> When see len <= 0: stop and return
 */
-int CMFCApplication1Dlg::CountContinousLineOther(int componentID) {
+int CMFCApplication2Dlg::CountContinousLineOther(int componentID) {
 	int countLineContinous = 0;
 	CEdit* pEdit = (CEdit*)GetDlgItem(componentID);
 	int totalLine = pEdit->GetLineCount();
-	for (int i = totalLine-1; i >= 0; --i) {
+	for (int i = totalLine - 1; i >= 0; --i) {
 		int charIndex = pEdit->LineIndex(i);
 		int lineLen = pEdit->LineLength(charIndex);
 		if (lineLen > 0) {
@@ -226,31 +222,33 @@ int CMFCApplication1Dlg::CountContinousLineOther(int componentID) {
 	return countLineContinous;
 }
 
-vector<CString> CMFCApplication1Dlg::ParseStringReceived(CString mess) {
+vector<CString> CMFCApplication2Dlg::ParseStringReceived(CString mess) {
 	CString tmp;
 	vector<CString> rs;
 	for (int i = 0; i < mess.GetLength(); ++i) {
-		if ( mess.GetAt(i) == _T(':')) {
+		if (mess.GetAt(i) == _T(':')) {
 			rs.push_back(tmp);
 			tmp = "";
 		}
 		else {
 			tmp = tmp + mess.GetAt(i);
 		}
-		
+
 	}
 	return rs;
 }
-
-void CMFCApplication1Dlg::StartServer()
-{
+// Create thread and init value for pipe
+/*
+* Set autoDelete = false because if it TRUE, MFC will auto delete it after close pipe(close app) but not set pPipeThread = nullptr
+*/
+void CMFCApplication2Dlg::StartServer() {
 	WSADATA wsaData;
 	int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (result != 0) {
 		AfxMessageBox(_T("Cannot WSAStartUp"));
 		return;
 	}
-	m_receiveSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	m_receiveSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (m_receiveSocket == INVALID_SOCKET) {
 		AfxMessageBox(_T("Cannot init socket"));
 		return;
@@ -270,7 +268,8 @@ void CMFCApplication1Dlg::StartServer()
 		closesocket(m_receiveSocket);
 		m_receiveSocket = INVALID_SOCKET;
 	}
-	listen(m_receiveSocket, SOMAXCONN);
+
+	// allow to open connecting queue
 	m_stopping = false;
 	m_pServerThread = AfxBeginThread(TCPServerThread, // function will run in new thread
 									this, // what data send to new thread (current addr of object CMFCApplication1Dlg) ->  1st parameter of PipeServerThread
@@ -280,32 +279,30 @@ void CMFCApplication1Dlg::StartServer()
 	m_pServerThread->m_bAutoDelete = FALSE;
 	m_pServerThread->ResumeThread();
 }
-
-UINT CMFCApplication1Dlg::TCPServerThread(LPVOID p)
-{
-	CMFCApplication1Dlg* self = static_cast<CMFCApplication1Dlg*>(p);
+// Active pipe
+/*
+* CMFCApplication2Dlg have to use to point to the "dlg" object in UI thread because PipeServerThread is STATIC function
+* ConnectNamedPipe will block this thread until have a connection
+* After have a connection, check the m_stopping to know whether client close the app => if true close pipe and return function
+* read the data from pipe and send POST message to UI thread to update UI
+*/
+UINT CMFCApplication2Dlg::TCPServerThread(LPVOID p) {
+	CMFCApplication2Dlg* self = static_cast<CMFCApplication2Dlg*>(p);
 	HWND hwnd = self->m_hWnd;
 
 	while (!self->m_stopping)
 	{
 		sockaddr_in clientAddr = {};
 		int addrLen = sizeof(clientAddr);
-		SOCKET clientSocket = accept(self->m_receiveSocket, (sockaddr*)&clientAddr, &addrLen);
+		
 
-		if (clientSocket == INVALID_SOCKET) break;
+		
+		wchar_t buf[4146];
+		int check = recvfrom(self->m_receiveSocket, (char*)buf, sizeof(buf) - 2, 0, (sockaddr*)&clientAddr, &addrLen);
+		if (check == SOCKET_ERROR || check <= 0) break;
+		buf[check / 2] = L'\0';
+		std::wstring data(buf);
 
-		std::wstring data;
-		wchar_t buf[1024];
-		int check;
-		while (true) {
-			check = recv(clientSocket, (char*)buf, sizeof(buf) - 1, 0);
-			if (check <= 0) break;
-			buf[check / sizeof(wchar_t)] = L'\0';
-			data = data + buf;
-			if (data.size() > 32 * 1024) break;
-		}
-		// done receive => close
-		closesocket(clientSocket);
 		if (data.empty() == false) {
 			CString* msg = new CString(data.c_str());
 			BOOL rs = ::PostMessage(hwnd, WM_PIPE_MSG, 0, (LPARAM)msg);
@@ -315,38 +312,15 @@ UINT CMFCApplication1Dlg::TCPServerThread(LPVOID p)
 	return 0;
 }
 
-void CMFCApplication1Dlg::StopServer()
-{
-	if (!m_pServerThread) return;
-	m_stopping = true;
-
-	if (m_receiveSocket != INVALID_SOCKET) {
-		closesocket(m_receiveSocket);
-		m_receiveSocket = INVALID_SOCKET;
-	}
-
-	WaitForSingleObject(m_pServerThread->m_hThread, 2000);
-	delete m_pServerThread;
-	m_pServerThread = nullptr;
-
-	WSACleanup();
-}
-
-void CMFCApplication1Dlg::OnDestroy()
-{
-	StopServer();
-	CDialogEx::OnDestroy();
-}
-
 // lParam save the address of received data
-LRESULT CMFCApplication1Dlg::OnPipeMessage(WPARAM wParam, LPARAM lParam) {
+LRESULT CMFCApplication2Dlg::OnPipeMessage(WPARAM wParam, LPARAM lParam) {
 	CString* msg = reinterpret_cast<CString*>(lParam);
 	HandleIncoming(*msg);
 	delete msg;
 	return 1;
 }
 
-void CMFCApplication1Dlg::HandleIncoming(const CString& message)
+void CMFCApplication2Dlg::HandleIncoming(const CString& message)
 {
 	if (message.IsEmpty() == true) return;
 
@@ -392,33 +366,58 @@ void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 
 }
 
-bool CMFCApplication1Dlg::SendViaTCP(const char* targetIP, const CString& payload)
+void CMFCApplication2Dlg::StopServer() {
+	if (!m_pServerThread) return;
+	m_stopping = true;
+
+	if (m_receiveSocket != INVALID_SOCKET) {
+		closesocket(m_receiveSocket);
+		m_receiveSocket = INVALID_SOCKET;
+	}
+
+	WaitForSingleObject(m_pServerThread->m_hThread, 2000);
+	delete m_pServerThread;
+	m_pServerThread = nullptr;
+
+	WSACleanup();
+}
+
+void CMFCApplication2Dlg::OnDestroy()
 {
-	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	StopServer();
+	CDialogEx::OnDestroy();
+}
+
+
+//SENDER
+bool CMFCApplication2Dlg::SendViaTCP(const char* targetIP, const CString& payload)
+{
+	SOCKET s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (s == INVALID_SOCKET) return false;
 
 	sockaddr_in addr;
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons((u_short)22126);
+	addr.sin_port = htons((u_short)12226);
 	//addr.sin_addr.s_addr = inet_addr(targetIP);
 	inet_pton(AF_INET, targetIP, &addr.sin_addr);
 
-	if (connect(s, (sockaddr*)&addr, sizeof(addr)) != SOCKET_ERROR) {
-		int bytes = (payload.GetLength() + 1) * sizeof(wchar_t);
-		send(s, reinterpret_cast<const char*>(payload.GetString()), bytes, 0);
-	}
-	else {
-		AfxMessageBox(_T("Cannot connect"));
+	int bytes = (payload.GetLength() + 1) * sizeof(wchar_t);
+	int rs = sendto(s, reinterpret_cast<const char*>(payload.GetString()), bytes, 0, (sockaddr*)&addr, sizeof(addr));
+
+	closesocket(s);
+	if (rs == SOCKET_ERROR) {
+		AfxMessageBox(_T("Cannot send"));
 		return false;
 	}
-	closesocket(s);
+
 	return true;
 }
 
-void CMFCApplication1Dlg::OnBnClickedButton1()
+void CMFCApplication2Dlg::OnBnClickedButton1()
 {
 	CString content;
 	CString oldContent;
+	CString contentOther;
 	CString oldContentOther;
 
 	int countLineContinous = CountContinousLineOther(IDC_EDIT_MESSAGE_OTHER);
@@ -449,9 +448,8 @@ void CMFCApplication1Dlg::OnBnClickedButton1()
 
 	/////////////////////////////////////////////////////
 	m_db.InsertMessage(content, m_currentUser, receiverName);
-
-	//::Use directly function from API (OS)
 	SendViaTCP("127.0.0.1", sendingMessage);
+	
 
 	if (totalLineMe < totalLine)
 	{
@@ -479,8 +477,7 @@ void CMFCApplication1Dlg::OnBnClickedButton1()
 
 }
 
-
-void CMFCApplication1Dlg::OnLbnSelchangeListFriend()
+void CMFCApplication2Dlg::OnLbnSelchangeListFriend()
 {
 	CListBox* listFriend = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
 	int sel = listFriend->GetCurSel();
@@ -499,6 +496,7 @@ void CMFCApplication1Dlg::OnLbnSelchangeListFriend()
 		SetDlgItemText(IDC_EDIT_MESSAGE_OTHER, _T(""));
 		SetDlgItemText(IDC_EDIT_MESSAGE, _T(""));
 
+
 		if (friendName.Left(3) == _T("-->")) {
 			friendName = friendName.Right(friendName.GetLength() - 3);
 			listFriend->DeleteString(sel);
@@ -508,7 +506,6 @@ void CMFCApplication1Dlg::OnLbnSelchangeListFriend()
 			
 		}
 		LoadChatToUI(friendName);
-		
 	}
 	// focus on last line (new message)
 	CEdit* pEditMe = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_ME);
@@ -516,7 +513,7 @@ void CMFCApplication1Dlg::OnLbnSelchangeListFriend()
 	pEditMe->SetSel(len, len, FALSE);
 }
 
-void CMFCApplication1Dlg::LoadChatToUI(CString friendName) {
+void CMFCApplication2Dlg::LoadChatToUI(CString friendName) {
 	vector<message> messages = m_db.LoadMessage(m_currentUser, friendName);
 	CString myContent;
 	CString friendContent;
@@ -525,7 +522,7 @@ void CMFCApplication1Dlg::LoadChatToUI(CString friendName) {
 	// kiểm tra xem người hiện tại chuẩn bị xử lí có giống với người ban nãy kh
 	// nếu giống nhau thì chỉ cần 1 lần /r/n
 	// nếu tên mới thì cập nhật nhiều /r/n dựa trên số lượng dòng
-	// nếu tên mới là ME thì check bên OTHER, nếu là OTHER thì check ME
+		// nếu tên mới là ME thì check bên OTHER, nếu là OTHER thì check ME
 	for (int i = 0; i < messages.size(); ++i)
 	{
 		if (messages[i].sender == m_currentUser)
@@ -535,6 +532,8 @@ void CMFCApplication1Dlg::LoadChatToUI(CString friendName) {
 
 			myContent += messages[i].content;
 			myContent += _T("\r\n");
+
+
 
 		}
 		else
@@ -550,13 +549,13 @@ void CMFCApplication1Dlg::LoadChatToUI(CString friendName) {
 	SetDlgItemText(IDC_EDIT_MESSAGE_OTHER, friendContent);
 }
 
-void CMFCApplication1Dlg::OnEnChangeEditMessageOther()
+void CMFCApplication2Dlg::OnEnChangeEditMessageOther()
 {
 
-	
+
 }
 
-//void CMFCApplication1Dlg::OnEnterMessageOther()
+//void CMFCApplication2Dlg::OnEnterMessageOther()
 //{
 //	CEdit* pEdit = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_OTHER);
 //
@@ -583,11 +582,11 @@ void CMFCApplication1Dlg::OnEnChangeEditMessageOther()
 //	CString friendName;
 //	pListBox->GetText(nIndex, friendName);
 //
-//	//////////////////////////////////////////////////////
+//	////////////////////////////////////////////////////////
 //	//m_db.InsertMessage(lineText, friendName, m_currentUser);
 //}
 
-BOOL CMFCApplication1Dlg::PreTranslateMessage(MSG* pMsg)
+BOOL CMFCApplication2Dlg::PreTranslateMessage(MSG* pMsg)
 {
 	if (pMsg->message == WM_KEYDOWN)
 	{
@@ -608,7 +607,7 @@ BOOL CMFCApplication1Dlg::PreTranslateMessage(MSG* pMsg)
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
 
-void CMFCApplication1Dlg::OnVscrollMessageOther()
+void CMFCApplication2Dlg::OnVscrollMessageOther()
 {
 	if (m_syncScrolling)
 		return;
@@ -627,7 +626,7 @@ void CMFCApplication1Dlg::OnVscrollMessageOther()
 	m_syncScrolling = false;
 }
 
-void CMFCApplication1Dlg::OnVscrollMessageMe()
+void CMFCApplication2Dlg::OnVscrollMessageMe()
 {
 	if (m_syncScrolling)
 		return;
@@ -645,7 +644,7 @@ void CMFCApplication1Dlg::OnVscrollMessageMe()
 
 	m_syncScrolling = false;
 }
-void CMFCApplication1Dlg::OnEnChangeEditNotification()
+void CMFCApplication2Dlg::OnEnChangeEditNotification()
 {
 	// TODO:  If this is a RICHEDIT control, the control will not
 	// send this notification unless you override the CDialogEx::OnInitDialog()
