@@ -41,6 +41,8 @@ private:
 
 	int CountContinousLineOther(int componentId);
 	vector<CString> ParseStringReceived(CString mess);
+	CString MultipleString(CString str, int time);
+	int CountWrapLines(const CString& text);
 
 	//sender side
 	void StartServer();
@@ -48,7 +50,7 @@ private:
 	static UINT TCPServerThread(LPVOID pParam);
 	//receiver side
 	void HandleIncoming(const CString& message);
-	bool SendViaTCP(const char* targetIP, const CString& payload);
+	bool SendViaUDP(const char* targetIP, const CString& payload);
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support

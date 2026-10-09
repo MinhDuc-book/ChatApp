@@ -39,6 +39,8 @@ private:
 	std::map<CString, CString> m_peerIPs;
 
 	void LoadChatToUI(CString friendName);
+	CString MultipleString(CString str, int time);
+	int CountWrapLines(const CString& text);
 
 	static UINT TCPServerThread(LPVOID pParam);
 	void StartServer();

@@ -35,6 +35,8 @@ private:
 	CString m_pipeName;
 
 	void LoadChatToUI(CString friendName);
+	int CountWrapLines(const CString& text);
+	CString MultipleString(CString str, int time);
 
 	static UINT PipeServerThread(LPVOID pParam);
 	void StartPipeServer();

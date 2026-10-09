@@ -38,6 +38,8 @@ private:
 	CString m_pipeName;
 
 	void LoadChatToUI(CString friendName);
+	CString MultipleString(CString str, int time);
+	int CountWrapLines(const CString& text);
 
 	int CountContinousLineOther(int componentId);
 	vector<CString> ParseStringReceived(CString mess);

@@ -294,7 +294,8 @@ UINT CMFCApplication2Dlg::TCPServerThread(LPVOID p) {
 	{
 		sockaddr_in clientAddr = {};
 		int addrLen = sizeof(clientAddr);
-		
+		//SOCKET clientSocket = accept(self->m_receiveSocket, (sockaddr*)&clientAddr, &addrLen);
+		//if (clientSocket == INVALID_SOCKET) break;
 
 		
 		wchar_t buf[4146];
@@ -302,7 +303,7 @@ UINT CMFCApplication2Dlg::TCPServerThread(LPVOID p) {
 		if (check == SOCKET_ERROR || check <= 0) break;
 		buf[check / 2] = L'\0';
 		std::wstring data(buf);
-
+		//closesocket(clientSocket);
 		if (data.empty() == false) {
 			CString* msg = new CString(data.c_str());
 			BOOL rs = ::PostMessage(hwnd, WM_PIPE_MSG, 0, (LPARAM)msg);
@@ -390,7 +391,7 @@ void CMFCApplication2Dlg::OnDestroy()
 
 
 //SENDER
-bool CMFCApplication2Dlg::SendViaTCP(const char* targetIP, const CString& payload)
+bool CMFCApplication2Dlg::SendViaUDP(const char* targetIP, const CString& payload)
 {
 	SOCKET s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (s == INVALID_SOCKET) return false;
@@ -417,7 +418,6 @@ void CMFCApplication2Dlg::OnBnClickedButton1()
 {
 	CString content;
 	CString oldContent;
-	CString contentOther;
 	CString oldContentOther;
 
 	int countLineContinous = CountContinousLineOther(IDC_EDIT_MESSAGE_OTHER);
@@ -441,39 +441,15 @@ void CMFCApplication2Dlg::OnBnClickedButton1()
 	pListBox->GetText(nIndex, receiverName);
 	CString sendingMessage = m_currentUser + ":" + content + ":" + receiverName + ":";
 
-	CString enter = _T("");
-	if (oldContent.IsEmpty() == false) {
-		enter += _T("\r\n");
-	}
-
 	/////////////////////////////////////////////////////
 	m_db.InsertMessage(content, m_currentUser, receiverName);
-	SendViaTCP("127.0.0.1", sendingMessage);
-	
 
-	if (totalLineMe < totalLine)
-	{
-		for (int i = 0; i < countLineContinous; ++i)
-		{
-			enter += _T("\r\n");
-		}
-	}
+	//::Use directly function from API (OS)
+	SendViaUDP("127.0.0.1", sendingMessage);
 
-	content = oldContent + enter + content;
 	SetDlgItemText(IDC_EDIT_MESSAGE, _T(""));
-	SetDlgItemText(IDC_EDIT_MESSAGE_ME, content);
 
-	oldContentOther = oldContentOther + _T("\r\n");
-	SetDlgItemText(IDC_EDIT_MESSAGE_OTHER, oldContentOther);
-
-	int len = pEditMe->GetWindowTextLength();
-	// focus to last message
-	// caret: position of the cursor look like "|" when typing in a text box, the next character typed will be placed in that position
-	// SetSel(start, end) = SetSelection: select a area in Edit Control
-	pEditMe->SetSel(len, len, FALSE);
-	// send Message to Window or Control
-	// EM_... : Scroll to where caret place now
-	pEditMe->SendMessage(EM_SCROLLCARET, 0, 0);
+	LoadChatToUI(receiverName);
 
 }
 
@@ -513,33 +489,101 @@ void CMFCApplication2Dlg::OnLbnSelchangeListFriend()
 	pEditMe->SetSel(len, len, FALSE);
 }
 
-void CMFCApplication2Dlg::LoadChatToUI(CString friendName) {
+CString CMFCApplication2Dlg::MultipleString(CString str, int times) {
+	CString rs;
+	for (int i = 0; i < times; ++i) rs += str;
+	return rs;
+}
+
+// Đếm số dòng mà `text` chiếm trong ô edit `editID` (có tính tự xuống dòng)
+int CMFCApplication2Dlg::CountWrapLines(const CString& text)
+{
+	//CEdit* pEdit = (CEdit*)GetDlgItem(editID);
+	//CDC* pDC = pEdit->GetDC();
+	//CFont* pOldFont = pDC->SelectObject(pEdit->GetFont());
+	//
+	//CRect rc;
+	//pEdit->GetRect(&rc);                         // vùng hiển thị chữ thực sự
+	//int width = rc.Width();
+	//if (pEdit->GetStyle() & WS_VSCROLL)
+	//	width -= GetSystemMetrics(SM_CXVSCROLL); // trừ chỗ thanh cuộn
+	//
+	//CRect calc(0, 0, width, 0);
+	//pDC->DrawText(text, &calc,DT_CALCRECT | DT_WORDBREAK | DT_EDITCONTROL | DT_NOPREFIX);
+	//
+	//TEXTMETRIC tm;
+	//pDC->GetTextMetrics(&tm);
+	//
+	//pDC->SelectObject(pOldFont);
+	//pEdit->ReleaseDC(pDC);
+	//
+	//int lines = (tm.tmHeight > 0) ? calc.Height() / tm.tmHeight : 1;
+	//return max(1, lines);
+
+	int lines = (text.GetLength() / 28) + 1; // chia làm tròn lên
+	return max(1, lines);
+}
+
+void CMFCApplication2Dlg::LoadChatToUI(CString friendName)
+{
+	//vector<message> messages = m_db.LoadMessage(m_currentUser, friendName);
+	//CString myContent, friendContent;
+	//const CString NL = _T("\r\n");
+	//
+	//for (size_t i = 0; i < messages.size(); ++i)
+	//{
+	//	bool isMe = (messages[i].sender == m_currentUser);
+	//
+	//	// đo ở đúng ô sẽ hiển thị tin nhắn này
+	//	int L = CountWrapLines(isMe ? IDC_EDIT_MESSAGE_ME : IDC_EDIT_MESSAGE_OTHER,messages[i].content);
+	//
+	//	CString prefix = (i > 0) ? NL : _T("");     // ngắt dòng giữa các tin
+	//	CString blank = MultipleString(NL, L - 1); // L dòng trống cho bên còn lại
+	//
+	//	if (isMe) {
+	//		myContent += prefix + messages[i].content;
+	//		friendContent += prefix + blank;
+	//	}
+	//	else {
+	//		friendContent += prefix + messages[i].content;
+	//		myContent += prefix + blank;
+	//	}
+	//}
+	//
+	//SetDlgItemText(IDC_EDIT_MESSAGE_ME, myContent);
+	//SetDlgItemText(IDC_EDIT_MESSAGE_OTHER, friendContent);
+	//
+	//// cuộn xuống tin mới nhất (hai ô tự đồng bộ nhờ OnVscroll...)
+	//CEdit* pMe = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_ME);
+	//int len = pMe->GetWindowTextLength();
+	//pMe->SetSel(len, len, FALSE);
+	//pMe->SendMessage(EM_SCROLLCARET, 0, 0);
+	//CEdit* pOther = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_OTHER);
+	//len = pOther->GetWindowTextLength();
+	//pOther->SetSel(len, len, FALSE);
+	//pOther->SendMessage(EM_SCROLLCARET, 0, 0);
+
 	vector<message> messages = m_db.LoadMessage(m_currentUser, friendName);
 	CString myContent;
 	CString friendContent;
-	CString enter = _T("");
 
-	// kiểm tra xem người hiện tại chuẩn bị xử lí có giống với người ban nãy kh
-	// nếu giống nhau thì chỉ cần 1 lần /r/n
-	// nếu tên mới thì cập nhật nhiều /r/n dựa trên số lượng dòng
-		// nếu tên mới là ME thì check bên OTHER, nếu là OTHER thì check ME
 	for (int i = 0; i < messages.size(); ++i)
 	{
+		// tin nhắn này chiếm bao nhiêu dòng trong ô edit
+		int lines = CountWrapLines(messages[i].content);
+
 		if (messages[i].sender == m_currentUser)
 		{
-			// Leave \r\n on OTHER side
-			friendContent += _T("\r\n");
+			// Leave \r\n on OTHER side: chừa đúng `lines` dòng
+			friendContent += MultipleString(_T("\r\n"), lines);
 
 			myContent += messages[i].content;
 			myContent += _T("\r\n");
-
-
-
 		}
 		else
 		{
-			// Leave \r\n on ME side
-			myContent += _T("\r\n");
+			// Leave \r\n on ME side: chừa đúng `lines` dòng
+			myContent += MultipleString(_T("\r\n"), lines);
 
 			friendContent += messages[i].content;
 			friendContent += _T("\r\n");
@@ -547,6 +591,14 @@ void CMFCApplication2Dlg::LoadChatToUI(CString friendName) {
 	}
 	SetDlgItemText(IDC_EDIT_MESSAGE_ME, myContent);
 	SetDlgItemText(IDC_EDIT_MESSAGE_OTHER, friendContent);
+
+	// cuộn xuống tin mới nhất
+	CEdit* pMe = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_ME);
+	int len = pMe->GetWindowTextLength();
+	pMe->SetSel(len, len, FALSE);
+	pMe->SendMessage(EM_SCROLLCARET, 0, 0);
+
+
 }
 
 void CMFCApplication2Dlg::OnEnChangeEditMessageOther()

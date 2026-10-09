@@ -26,7 +26,9 @@ private:
 	bool m_syncScrolling = false;
 	int CountContinousLineOther(int componentId);
 	vector<CString> ParseStringReceived(CString mess);
+
 	void LoadChatToUI(CString friendName);
+	
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
