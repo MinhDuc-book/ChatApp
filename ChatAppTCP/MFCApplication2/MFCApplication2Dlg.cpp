@@ -328,6 +328,22 @@ LRESULT CMFCApplication2Dlg::OnPipeMessage(WPARAM wParam, LPARAM lParam) {
 	return 1;
 }
 
+bool CMFCApplication2Dlg::RegisterAutoRun() {
+	wchar_t path[MAX_PATH];
+	if (GetModuleFileName(nullptr, path, MAX_PATH) == 0) return false;
+
+	CString value;
+	value.Format(_T("\"%s\""), path);
+
+	HKEY hkey;
+	LSTATUS rs = RegOpenKeyEx(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), 0, KEY_SET_VALUE, &hkey);
+	if (rs != ERROR_SUCCESS) return false;
+	rs = RegSetValueEx(hkey, _T("MFCApplication2TCP"), 0, REG_SZ, (const BYTE*)value.GetString(), (value.GetLength() + 1) * 2);
+	RegCloseKey(hkey);
+
+	return rs == ERROR_SUCCESS;
+}
+
 void CMFCApplication2Dlg::HandleIncoming(const CString& message)
 {
 	if (message.IsEmpty() == true) return;

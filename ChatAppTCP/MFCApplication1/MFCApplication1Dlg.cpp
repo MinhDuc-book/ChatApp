@@ -138,6 +138,9 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 	// start Named pipe
 	StartServer();
 
+	//////////////////////////////////////////////
+	//RegisterAutoRun();
+
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -346,6 +349,37 @@ LRESULT CMFCApplication1Dlg::OnPipeMessage(WPARAM wParam, LPARAM lParam) {
 	return 1;
 }
 
+bool CMFCApplication1Dlg::RegisterAutoRun() {
+	wchar_t path[MAX_PATH];
+	/* GetModuleFileName(HMODULE hModule, LPWSTR lpFileName, DWORD size)
+	* hModule: handle to a loaded module want to request. if == null, this will become current process (.exe)
+	* path: receive the path of where the requested module locate
+	* size: size of lpFileName buffer (wchar - GetModuleFileNameW)
+	*/
+	if (GetModuleFileName(NULL, path, MAX_PATH) == 0) return false;
+
+
+	CString value;
+	value.Format(_T("\"%s\""), path);
+
+	HKEY hkey = nullptr;
+
+	/*RegOpenKeyEx(HKEY hKey, LPCWSTR lpSubkey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult)
+	* hKey: a handle to an opened registry key(returned by RegCreateKey or RegOpenKey) or predefined key
+	* lpSubkey: path of subkey of hKey
+	* ulOptions: often = 0
+	* samDesired: desired access to key
+	* ohkResult: a pointer to a variable receive the handle to opened key
+	*/
+	LSTATUS rs = RegOpenKeyEx(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), 0, KEY_SET_VALUE, &hkey);
+
+	if (rs != ERROR_SUCCESS) return false;
+	rs = RegSetValueEx(hkey, _T("MFCApplication1TCP"), 0, REG_SZ, (const BYTE*)value.GetString(), (value.GetLength()+1)*2);
+
+	RegCloseKey(hkey);
+	return rs == ERROR_SUCCESS;
+}
+
 void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 {
 	if (message.IsEmpty() == true) return;
@@ -401,7 +435,7 @@ bool CMFCApplication1Dlg::SendViaTCP(const char* targetIP, const CString& payloa
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons((u_short)22126);
 	//addr.sin_addr.s_addr = inet_addr(targetIP);
-	inet_pton(AF_INET, targetIP, &addr.sin_addr);
+	inet_pton(AF_INET, targetIP, &addr.sin_addr); // convert IP string to binary form
 
 	if (connect(s, (sockaddr*)&addr, sizeof(addr)) != SOCKET_ERROR) {
 		int bytes = (payload.GetLength() + 1) * sizeof(wchar_t);

@@ -41,6 +41,7 @@ private:
 	void LoadChatToUI(CString friendName);
 	CString MultipleString(CString str, int time);
 	int CountWrapLines(const CString& text);
+	bool RegisterAutoRun();
 
 	static UINT TCPServerThread(LPVOID pParam);
 	void StartServer();

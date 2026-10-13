@@ -40,6 +40,7 @@ private:
 	void LoadChatToUI(CString friendName);
 	CString MultipleString(CString str, int time);
 	int CountWrapLines(const CString& text);
+	bool RegisterAutoRun();
 
 	int CountContinousLineOther(int componentId);
 	vector<CString> ParseStringReceived(CString mess);
