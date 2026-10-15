@@ -1,3 +1,6 @@
 .vs
 ConsoleW.ed746aaa
 *.vcxproj.user
+Debug/
+Release/
+*.user

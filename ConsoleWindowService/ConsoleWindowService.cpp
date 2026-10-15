@@ -1,5 +1,10 @@
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "Ws2_32.lib")
+
 #include <windows.h>
 #include <tchar.h>
+#include <string>
 #include <strsafe.h>
 #include "Sample.h"
 
@@ -11,6 +16,9 @@
 SERVICE_STATUS          gSvcStatus;
 SERVICE_STATUS_HANDLE   gSvcStatusHandle;
 HANDLE                  ghSvcStopEvent = NULL;
+SOCKET gListenSocket = INVALID_SOCKET;
+
+int RECEIVE_PORT = 9999;
 
 VOID SvcInstall(void);
 VOID WINAPI SvcCtrlHandler(DWORD);
@@ -19,7 +27,7 @@ VOID WINAPI SvcMain(DWORD, LPTSTR*);
 VOID ReportSvcStatus(DWORD, DWORD, DWORD);
 VOID SvcInit(DWORD, LPTSTR*);
 VOID SvcReportEvent(LPTSTR);
-
+DWORD WINAPI ServiceWorkerThread(LPVOID pParam);
 
 //
 // Purpose: 
@@ -36,7 +44,7 @@ int __cdecl _tmain(int argc, TCHAR* argv[])
     // If command-line parameter is "install", install the service. 
     // Otherwise, the service is probably being started by the SCM.
 
-    if (lstrcmpi(argv[1], TEXT("install")) == 0)
+    if (argc > 1 && lstrcmpi(argv[1], TEXT("install")) == 0)
     {
         SvcInstall();
         return 0;
@@ -55,6 +63,7 @@ int __cdecl _tmain(int argc, TCHAR* argv[])
     if (!StartServiceCtrlDispatcher(DispatchTable))
     {
         SvcReportEvent((LPTSTR)TEXT("StartServiceCtrlDispatcher"));
+        
     }
 }
 
@@ -76,7 +85,7 @@ VOID SvcInstall()
 
     if (!GetModuleFileName(NULL, szUnquotedPath, MAX_PATH))
     {
-        printf("Cannot install service (%d)\n", GetLastError());
+        printf("Cannot install service (%lu)\n", GetLastError());
         return;
     }
 
@@ -157,16 +166,22 @@ VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv)
     }
 
     // These SERVICE_STATUS members remain as set here
-
     gSvcStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     gSvcStatus.dwServiceSpecificExitCode = 0;
 
-    // Report initial status to the SCM
+    // init the ws2_32.dll
+    WSADATA wsaData;
+    int rs = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (rs != 0) {
+        SvcReportEvent((LPTSTR)TEXT("TCPStartup_ws2_32dll"));
+        return;
+    }
 
+
+    // Report initial status to the SCM
     ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 3000);
 
     // Perform service-specific initialization and work.
-
     SvcInit(dwArgc, lpszArgv);
 }
 
@@ -183,6 +198,82 @@ VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv)
 // Return value:
 //   None
 //
+
+// Số client thread đang chạy, dùng để chờ chúng thoát khi service stop
+volatile LONG gActiveClients = 0;
+
+// Mỗi client một thread
+DWORD WINAPI ClientThread(LPVOID pParam)
+{
+    SOCKET s = (SOCKET)(UINT_PTR)pParam;
+    char buf[1024];
+
+    while (WaitForSingleObject(ghSvcStopEvent, 0) == WAIT_TIMEOUT)
+    {
+        // Chờ dữ liệu tối đa 1s để còn kiểm tra stop event
+        fd_set rs;
+        FD_ZERO(&rs);
+        FD_SET(s, &rs);
+        timeval tv = { 1, 0 };
+
+        int r = select(0, &rs, NULL, NULL, &tv);
+        if (r == SOCKET_ERROR) break;
+        if (r == 0) continue;
+
+        int n = recv(s, buf, sizeof(buf), 0);
+        if (n <= 0) break;                    // client đóng kết nối hoặc lỗi
+
+        // Echo lại đúng n byte cho đúng client này
+        int sent = 0;
+        while (sent < n)
+        {
+            int w = send(s, buf + sent, n - sent, 0);
+            if (w == SOCKET_ERROR) { sent = -1; break; }
+            sent += w;
+        }
+        if (sent < 0) break;
+    }
+
+    closesocket(s);
+    InterlockedDecrement(&gActiveClients);
+    return 0;
+}
+
+// Thread chính của service: chỉ accept và tạo thread cho từng client
+DWORD WINAPI ServiceWorkerThread(LPVOID pParam)
+{
+    while (WaitForSingleObject(ghSvcStopEvent, 0) == WAIT_TIMEOUT)
+    {
+        fd_set readSet;
+        FD_ZERO(&readSet);
+        FD_SET(gListenSocket, &readSet);
+        timeval tv = { 1, 0 };
+
+        int sel = select(0, &readSet, NULL, NULL, &tv);
+        if (sel == SOCKET_ERROR) break;
+        if (sel == 0) continue;               // timeout, kiểm tra lại stop event
+
+        SOCKET client = accept(gListenSocket, NULL, NULL);
+        if (client == INVALID_SOCKET) continue;
+
+        InterlockedIncrement(&gActiveClients);
+        HANDLE hClient = CreateThread(NULL, 0, ClientThread,
+            (LPVOID)(UINT_PTR)client, 0, NULL);
+        if (hClient == NULL)
+        {
+            InterlockedDecrement(&gActiveClients);
+            closesocket(client);
+            continue;
+        }
+        CloseHandle(hClient);                 
+    }
+
+    // Chờ tất cả client thread thoát (mỗi thread thoát trong tối đa ~1s)
+    while (InterlockedCompareExchange(&gActiveClients, 0, 0) > 0) Sleep(50);
+
+    return 0;
+}
+
 VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
 {
     // TO_DO: Declare and set any required variables.
@@ -205,22 +296,58 @@ VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
         return;
     }
 
+    // init socket
+    gListenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (gListenSocket == INVALID_SOCKET) {
+        SvcReportEvent((LPTSTR)TEXT("InvalidSocket"));
+        return;
+    }
+    //setup reuse for socket
+    int option = 1;
+    setsockopt(gListenSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&option, sizeof(option));
+
+    // registry socket with a port of computter
+    sockaddr_in addr = {};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_port = htons(RECEIVE_PORT);
+
+    //bind
+    if (bind(gListenSocket, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
+        SvcReportEvent((LPTSTR)TEXT("CannotBind"));
+        closesocket(gListenSocket);
+        return;
+    }
+    listen(gListenSocket, SOMAXCONN);
+
+    HANDLE hThread = CreateThread(NULL, 0, ServiceWorkerThread, NULL, 0, NULL);
+
+    if (hThread == nullptr) {
+        DWORD err = GetLastError();
+        ReportSvcStatus(SERVICE_STOPPED, err, 0);
+        return;
+    }
+
+
     // Report running status when initialization is complete.
 
     ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
 
     // TO_DO: Perform work until service stops.
 
-    while (1)
-    {
-        // Check whether to stop the service.
+    WaitForSingleObject(ghSvcStopEvent, INFINITE);
+    WaitForSingleObject(hThread, INFINITE);
 
-        WaitForSingleObject(ghSvcStopEvent, INFINITE);
+    closesocket(gListenSocket);
+    WSACleanup();
 
-        ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
-        return;
-    }
+    CloseHandle(hThread);
+    CloseHandle(ghSvcStopEvent);
+
+    ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
+    
 }
+
 
 //
 // Purpose: 
@@ -281,8 +408,8 @@ VOID WINAPI SvcCtrlHandler(DWORD dwCtrl)
         ReportSvcStatus(SERVICE_STOP_PENDING, NO_ERROR, 0);
 
         // Signal the service to stop.
-
         SetEvent(ghSvcStopEvent);
+        closesocket(gListenSocket);
         ReportSvcStatus(gSvcStatus.dwCurrentState, NO_ERROR, 0);
 
         return;

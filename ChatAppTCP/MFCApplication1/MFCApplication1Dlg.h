@@ -35,7 +35,6 @@ private:
 	USHORT m_receivePort = 12226;
 	CWinThread* m_pServerThread = nullptr;
 	std::atomic<bool>  m_stopping{ false };
-	CString m_pipeName = _T("");
 	std::map<CString, CString> m_peerIPs;
 
 	void LoadChatToUI(CString friendName);
