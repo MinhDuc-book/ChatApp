@@ -199,10 +199,10 @@ VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv)
 //   None
 //
 
-// Số client thread đang chạy, dùng để chờ chúng thoát khi service stop
+// Number of client running
 volatile LONG gActiveClients = 0;
 
-// Mỗi client một thread
+// 1 client 1 thread
 DWORD WINAPI ClientThread(LPVOID pParam)
 {
     SOCKET s = (SOCKET)(UINT_PTR)pParam;
@@ -210,7 +210,6 @@ DWORD WINAPI ClientThread(LPVOID pParam)
 
     while (WaitForSingleObject(ghSvcStopEvent, 0) == WAIT_TIMEOUT)
     {
-        // Chờ dữ liệu tối đa 1s để còn kiểm tra stop event
         fd_set rs;
         FD_ZERO(&rs);
         FD_SET(s, &rs);
@@ -221,9 +220,9 @@ DWORD WINAPI ClientThread(LPVOID pParam)
         if (r == 0) continue;
 
         int n = recv(s, buf, sizeof(buf), 0);
-        if (n <= 0) break;                    // client đóng kết nối hoặc lỗi
+        if (n <= 0) break;                    
 
-        // Echo lại đúng n byte cho đúng client này
+        
         int sent = 0;
         while (sent < n)
         {
@@ -239,7 +238,7 @@ DWORD WINAPI ClientThread(LPVOID pParam)
     return 0;
 }
 
-// Thread chính của service: chỉ accept và tạo thread cho từng client
+//accept and create thread for each client
 DWORD WINAPI ServiceWorkerThread(LPVOID pParam)
 {
     while (WaitForSingleObject(ghSvcStopEvent, 0) == WAIT_TIMEOUT)
@@ -251,7 +250,7 @@ DWORD WINAPI ServiceWorkerThread(LPVOID pParam)
 
         int sel = select(0, &readSet, NULL, NULL, &tv);
         if (sel == SOCKET_ERROR) break;
-        if (sel == 0) continue;               // timeout, kiểm tra lại stop event
+        if (sel == 0) continue;               // timeout
 
         SOCKET client = accept(gListenSocket, NULL, NULL);
         if (client == INVALID_SOCKET) continue;
@@ -268,7 +267,7 @@ DWORD WINAPI ServiceWorkerThread(LPVOID pParam)
         CloseHandle(hClient);                 
     }
 
-    // Chờ tất cả client thread thoát (mỗi thread thoát trong tối đa ~1s)
+    // Wait all client stop
     while (InterlockedCompareExchange(&gActiveClients, 0, 0) > 0) Sleep(50);
 
     return 0;
