@@ -4,7 +4,6 @@
 #include <vector>
 #include "resource.h"
 #include <afxstr.h> 
-#include <vector>
 
 using namespace std;
 
@@ -25,7 +24,7 @@ class DatabaseManager {
 private:
 	sqlite3* db = nullptr;
 public:
-	CString rs;
+	//CString rs;
 
 	~DatabaseManager();
 	bool OpenDatabase(CString path);

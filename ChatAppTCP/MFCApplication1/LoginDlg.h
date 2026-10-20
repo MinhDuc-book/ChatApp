@@ -2,6 +2,8 @@
 #include "DatabaseManager.h"
 #include "resource.h"
 #include "afxdialogex.h"
+#include <afxsock.h>
+
 
 class CLoginDlg : public CDialogEx
 {
@@ -26,6 +28,8 @@ private:
     DatabaseManager m_db;
 public:
     CString m_savedUser;
+
+    bool SendViaTCP(const char* targetIP, const CString& payload);
 
     afx_msg void OnEnChangeEditUsername();
     afx_msg void OnBnClickedButtonSignin();

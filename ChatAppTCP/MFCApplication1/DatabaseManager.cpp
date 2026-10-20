@@ -178,7 +178,6 @@ void DatabaseManager::InsertData(Info info) {
     CT2A pwd(info.password);
     sql += "'" + string(usr) + "', ";
     sql += "'" + string(pwd) + "'";
-
     sql += ");";
 
 

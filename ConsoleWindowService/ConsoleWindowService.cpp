@@ -1,33 +1,4 @@
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#pragma comment(lib, "Ws2_32.lib")
-
-#include <windows.h>
-#include <tchar.h>
-#include <string>
-#include <strsafe.h>
-#include "Sample.h"
-
-#pragma comment(lib, "advapi32.lib")
-
-#define SVCNAME TEXT("SvcEcho")
-
-
-SERVICE_STATUS          gSvcStatus;
-SERVICE_STATUS_HANDLE   gSvcStatusHandle;
-HANDLE                  ghSvcStopEvent = NULL;
-SOCKET gListenSocket = INVALID_SOCKET;
-
-int RECEIVE_PORT = 9999;
-
-VOID SvcInstall(void);
-VOID WINAPI SvcCtrlHandler(DWORD);
-VOID WINAPI SvcMain(DWORD, LPTSTR*);
-
-VOID ReportSvcStatus(DWORD, DWORD, DWORD);
-VOID SvcInit(DWORD, LPTSTR*);
-VOID SvcReportEvent(LPTSTR);
-DWORD WINAPI ServiceWorkerThread(LPVOID pParam);
+#include "ConsoleWindowService.h"
 
 //
 // Purpose: 
@@ -185,29 +156,57 @@ VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv)
     SvcInit(dwArgc, lpszArgv);
 }
 
-//
-// Purpose: 
-//   The service code
-//
-// Parameters:
-//   dwArgc - Number of arguments in the lpszArgv array
-//   lpszArgv - Array of strings. The first string is the name of
-//     the service and subsequent strings are passed by the process
-//     that called the StartService function to start the service.
-// 
-// Return value:
-//   None
-//
+std::vector<std::string> ParseStringReceivedLogin(const char* mess) {
+    std::string tmp;
+    std::vector<std::string> rs;
+    for (int i = 0; i < strlen(mess); ++i) {
+        if (mess[i] == '|') {
+            rs.push_back(tmp);
+            tmp = "";
+        }
+        else {
+            tmp = tmp + mess[i];
+        }
+    }
 
+    if (!tmp.empty()) {
+        rs.push_back(tmp);
+    }
+
+    return rs;
+    
+}
+
+void HandleIncomingLogin(const char* mess, ActionLogin login)
+{
+    
+    if (mess == nullptr) return;
+    
+    std::vector<std::string> received = ParseStringReceivedLogin(mess);
+    if (received.size() != 3) return;
+
+    if (received.size() >= 2 && !received[1].empty()) {
+        // Xử lý
+    }
+
+    if (received[0] == "1") {
+
+    }
+    
+
+}
 // Number of client running
 volatile LONG gActiveClients = 0;
 
 // 1 client 1 thread
 DWORD WINAPI ClientThread(LPVOID pParam)
 {
+    /*TODO
+    * Thực hiện các logic đăng nhập, đăng kí, hiển thị của từng client
+    */
     SOCKET s = (SOCKET)(UINT_PTR)pParam;
     char buf[1024];
-
+    Action action;
     while (WaitForSingleObject(ghSvcStopEvent, 0) == WAIT_TIMEOUT)
     {
         fd_set rs;
@@ -220,6 +219,10 @@ DWORD WINAPI ClientThread(LPVOID pParam)
         if (r == 0) continue;
 
         int n = recv(s, buf, sizeof(buf), 0);
+        /*TODO:
+        * Xử lí nhận dữ liệu
+        */
+
         if (n <= 0) break;                    
 
         

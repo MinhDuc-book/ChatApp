@@ -11,7 +11,9 @@
 #include <afxsock.h>
 #include <map>
 
-#define WM_PIPE_MSG (WM_APP + 1)
+#define WM_TCP_MSG (WM_APP + 1)
+
+
 
 // CMFCApplication1Dlg dialog
 class CMFCApplication1Dlg : public CDialogEx
