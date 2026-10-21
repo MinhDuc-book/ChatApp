@@ -26,10 +26,12 @@ protected:
 
 private:
     DatabaseManager m_db;
+    int SERVER_PORT = 9999;
+    USHORT m_receivePort = 12226;
 public:
     CString m_savedUser;
 
-    bool SendViaTCP(const char* targetIP, const CString& payload);
+    bool SendViaTCP(const char* targetIP, const CString& payload, CString &response);
 
     afx_msg void OnEnChangeEditUsername();
     afx_msg void OnBnClickedButtonSignin();

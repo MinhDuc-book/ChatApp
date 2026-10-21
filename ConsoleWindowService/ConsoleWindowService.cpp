@@ -1,5 +1,5 @@
 #include "ConsoleWindowService.h"
-
+#include "ActionHandler.h"
 //
 // Purpose: 
 //   Entry point for the process
@@ -147,7 +147,8 @@ VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv)
         SvcReportEvent((LPTSTR)TEXT("TCPStartup_ws2_32dll"));
         return;
     }
-
+    // init database
+    ActionHandler::Init("D:\\AAMduwccc\\project\\C++\\usr.sql");
 
     // Report initial status to the SCM
     ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 3000);
@@ -156,45 +157,16 @@ VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv)
     SvcInit(dwArgc, lpszArgv);
 }
 
-std::vector<std::string> ParseStringReceivedLogin(const char* mess) {
-    std::string tmp;
-    std::vector<std::string> rs;
-    for (int i = 0; i < strlen(mess); ++i) {
-        if (mess[i] == '|') {
-            rs.push_back(tmp);
-            tmp = "";
-        }
-        else {
-            tmp = tmp + mess[i];
-        }
+bool SendFull(SOCKET s, const char* data, int len) {
+    int sent = 0;
+    while (sent < len) {
+        int w = send(s, data + sent, len - sent, 0);
+        if (w == SOCKET_ERROR) return false;
+        sent += w;
     }
-
-    if (!tmp.empty()) {
-        rs.push_back(tmp);
-    }
-
-    return rs;
-    
+    return true;
 }
 
-void HandleIncomingLogin(const char* mess, ActionLogin login)
-{
-    
-    if (mess == nullptr) return;
-    
-    std::vector<std::string> received = ParseStringReceivedLogin(mess);
-    if (received.size() != 3) return;
-
-    if (received.size() >= 2 && !received[1].empty()) {
-        // Xử lý
-    }
-
-    if (received[0] == "1") {
-
-    }
-    
-
-}
 // Number of client running
 volatile LONG gActiveClients = 0;
 
@@ -206,7 +178,6 @@ DWORD WINAPI ClientThread(LPVOID pParam)
     */
     SOCKET s = (SOCKET)(UINT_PTR)pParam;
     char buf[1024];
-    Action action;
     while (WaitForSingleObject(ghSvcStopEvent, 0) == WAIT_TIMEOUT)
     {
         fd_set rs;
@@ -218,22 +189,18 @@ DWORD WINAPI ClientThread(LPVOID pParam)
         if (r == SOCKET_ERROR) break;
         if (r == 0) continue;
 
-        int n = recv(s, buf, sizeof(buf), 0);
+        int n = recv(s, buf, sizeof(buf)-1, 0);
         /*TODO:
         * Xử lí nhận dữ liệu
         */
-
         if (n <= 0) break;                    
-
+        buf[n] = '\0';
         
-        int sent = 0;
-        while (sent < n)
-        {
-            int w = send(s, buf + sent, n - sent, 0);
-            if (w == SOCKET_ERROR) { sent = -1; break; }
-            sent += w;
+        std::string response = ActionHandler::ProcessRequest(buf);
+        // Gửi kết quả về lại client
+        if (!SendFull(s, response.c_str(), (int)response.length())) {
+            break;
         }
-        if (sent < 0) break;
     }
 
     closesocket(s);

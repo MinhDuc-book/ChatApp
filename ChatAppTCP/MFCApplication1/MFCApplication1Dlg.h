@@ -47,7 +47,7 @@ private:
 	static UINT TCPServerThread(LPVOID pParam);
 	void StartServer();
 	void StopServer();
-	bool SendViaTCP(const char* targetIP, const CString& payload);
+	bool SendViaTCP(const char* targetIP, const CString& payload, CString &response);
 	void HandleIncoming(const CString& message);
 	vector<CString> ParseStringReceived(CString mess);
 	int CountContinousLineOther(int componentId);

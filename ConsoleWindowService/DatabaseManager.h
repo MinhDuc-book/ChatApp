@@ -2,18 +2,19 @@
 #include "sqlite3.h"
 #include <string>
 #include <vector>
+#include <atlstr.h> 
 
 using namespace std;
 
 struct Info {
-	string username;
-	string password;
+	CString username;
+	CString password;
 };
 
 struct message {
-	string sender;
-	string receiver;
-	string content;
+	CString sender;
+	CString receiver;
+	CString content;
 };
 
 int CallBack(void* data, int argc, char** argv, char** errmsg);
@@ -27,12 +28,12 @@ public:
 	bool OpenDatabase(string path);
 	void CloseDatabase();
 
-	bool CreateTable();
-	bool InsertData(Info info);
-	int CheckLogin(string username, string password);
-	bool CheckExist(string username);
-	bool InsertMessage(string message, string sender, string receiver);
-	vector<message> LoadMessage(string sender, string receiver);
-	vector<string> AddListFriend(string curr_user);
-	string GetUserFromID(int id);
+	void CreateTables();
+	void InsertData(Info info);
+	int CheckLogin(CString username, CString password);
+	bool CheckExist(CString username);
+	bool InsertMessage(CString message, CString sender, CString receiver);
+	vector<message> LoadMessage(CString sender, CString receiver);
+	vector<string> AddListFriend(CString curr_user);
+	CString GetUserFromID(int id);
 };

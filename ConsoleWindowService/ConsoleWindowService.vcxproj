@@ -144,7 +144,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\sqlite-amalgamation-3530400\sqlite3.c" />
+    <ClCompile Include="ActionHandler.cpp" />
     <ClCompile Include="ConsoleWindowService.cpp" />
+    <ClCompile Include="DatabaseManager.cpp" />
     <ClCompile Include="DatabaseManager.h" />
     <ClCompile Include="SignIn.h" />
   </ItemGroup>
@@ -156,7 +158,7 @@
     <ClInclude Include="..\..\..\sqlite-amalgamation-3530400\sqlite3ext.h" />
     <ClInclude Include="Action.h" />
     <ClInclude Include="ConsoleWindowService.h" />
-    <ClInclude Include="LogIn.h" />
+    <ClInclude Include="ActionHandler.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

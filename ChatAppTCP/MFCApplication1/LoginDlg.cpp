@@ -43,10 +43,8 @@ BOOL CLoginDlg::OnInitDialog()
 	int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (result != 0) {
 		AfxMessageBox(_T("Cannot WSAStartUp"));
-		return;
+		return FALSE;
 	}
-	//m_db.OpenDatabase(_T("D:\\AAMduwccc\\project\\C++\\usr.sql"));
-	//m_db.CreateTables();
 
 	return TRUE;
 }
@@ -107,32 +105,59 @@ void CLoginDlg::OnBnClickedButtonLogin()
 	payload.Format(_T("%d|%s|%s"), action.action,
 		(LPCTSTR)action.username,
 		(LPCTSTR)action.password);
-	if (!SendViaTCP("127.0.0.1", payload)) {
-		AfxMessageBox(_T("Cannot Send"));
+
+	CString response = _T("");
+	if (!SendViaTCP("127.0.0.1", payload, response)) {
+		AfxMessageBox(_T("Cannot Login"));
 	}
+	else {
+		if (response.Left(2) == _T("OK"))
+		{
+			// Đăng nhập thành công!
+			m_savedUser = username;
+			EndDialog(IDC_BUTTON_LOGIN); // Thoát Dialog Login để vào Dialog Chat
+
+		}
+		else
+		{
+			// Đăng nhập thất bại!
+			AfxMessageBox(_T("Đăng nhập thất bại: Sai tài khoản hoặc mật khẩu!\r\n") + response);
+		}
+	}
+
+
 }
 
-bool CLoginDlg::SendViaTCP(const char* targetIP, const CString& payload)
+bool CLoginDlg::SendViaTCP(const char* targetIP, const CString& payload, CString &response)
 {
 	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (s == INVALID_SOCKET) return false;
 
 	sockaddr_in addr;
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons((u_short)9999);
+	addr.sin_port = htons((u_short)SERVER_PORT);
 	//addr.sin_addr.s_addr = inet_addr(targetIP);
 	inet_pton(AF_INET, targetIP, &addr.sin_addr); // convert IP string to binary form
 
-	if (connect(s, (sockaddr*)&addr, sizeof(addr)) != SOCKET_ERROR) {
-		int bytes = (payload.GetLength() + 1) * sizeof(wchar_t);
-		send(s, reinterpret_cast<const char*>(payload.GetString()), bytes, 0);
-	}
-	else {
-		AfxMessageBox(_T("Cannot connect"));
+	if (connect(s, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
+		closesocket(s);
+		AfxMessageBox(_T("Cannot connect to Server"));
 		return false;
 	}
+
+	CT2A asciiPayload(payload);
+	send(s, asciiPayload, (int)strlen(asciiPayload), 0);
+
+	char buf[512];
+	int bytesReceived = recv(s, buf, sizeof(buf)-1, 0);
+
+	if (bytesReceived > 0) {
+		buf[bytesReceived] = '\0';
+		response = CA2T(buf); // Đưa chuỗi nhận được vào outResponse
+	}
+
 	closesocket(s);
-	return true;
+	return (bytesReceived > 0);
 }
 
 void CLoginDlg::OnEnChangeEditPassword()

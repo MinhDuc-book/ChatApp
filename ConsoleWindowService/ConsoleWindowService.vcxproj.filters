@@ -27,12 +27,18 @@
     <ClCompile Include="..\..\..\sqlite-amalgamation-3530400\sqlite3.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DatabaseManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ActionHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Sample.mc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LogIn.h">
+    <ClInclude Include="ActionHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\sqlite-amalgamation-3530400\sqlite3.h">

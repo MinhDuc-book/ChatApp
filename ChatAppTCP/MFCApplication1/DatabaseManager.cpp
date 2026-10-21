@@ -4,6 +4,7 @@
 #include <iostream>
 #include <atlconv.h>
 
+
 // App1
 using namespace std;
 bool DatabaseManager::OpenDatabase(CString path) {

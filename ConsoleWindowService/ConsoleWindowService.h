@@ -9,6 +9,7 @@
 #include "Sample.h"
 #include "Action.h"
 #include <vector>
+#include <atlstr.h> 
 #include "DatabaseManager.h"
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -32,4 +33,6 @@ VOID SvcInit(DWORD, LPTSTR*);
 VOID SvcReportEvent(LPTSTR);
 DWORD WINAPI ServiceWorkerThread(LPVOID pParam);
 std::vector<std::string> ParseStringReceivedLogin(const char* mess);
-void HandleIncomingLogin(const char* mess, ActionLogin action);
+DWORD WINAPI ClientThread(LPVOID pParam);
+
+  

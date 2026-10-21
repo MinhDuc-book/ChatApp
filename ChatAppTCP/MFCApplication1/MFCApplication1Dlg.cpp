@@ -119,17 +119,35 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// add to list friend
-	m_db.OpenDatabase(_T("D:\\AAMduwccc\\project\\C++\\usr.sql"));
-	m_db.CreateTables();
-	CListBox* listFriend = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
-	listFriend->ResetContent();
-	SetDlgItemText(IDC_EDIT_CURR_USER, m_currentUser);
-	vector<string> friends = m_db.AddListFriend(m_currentUser);
-	for (int i = 0; i < friends.size(); ++i) {
-		CString strFriendName(friends[i].c_str());
-		listFriend->AddString(strFriendName);
-	}
 
+	CString payload;
+	payload.Format(_T("%d|%s"), 5, (LPCTSTR)m_currentUser);
+	CString response = _T("");
+	if (!SendViaTCP("127.0.0.1", payload, response)) {
+		AfxMessageBox(_T("Cannot request list friend"));
+	}
+	else {
+		if (response.Left(2) == _T("OK")) {
+			CListBox* listFriend = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
+			listFriend->ResetContent();
+			SetDlgItemText(IDC_EDIT_CURR_USER, m_currentUser);
+
+			int curPos = 0;
+			CString token = response.Tokenize(_T("|"), curPos);
+			token = response.Tokenize(_T("|"), curPos);
+			while (curPos != -1)
+			{
+				token = response.Tokenize(_T("|"), curPos);
+				if (!token.IsEmpty()) {
+					listFriend->AddString(token);
+				}
+			}
+
+		}
+		else {
+			AfxMessageBox(_T("Cannot Get List Friend\r\n") + response);
+		}
+	}
 
 	// login success -> lock if dont click to friend
 	GetDlgItem(IDC_EDIT_MESSAGE)->EnableWindow(FALSE);
@@ -238,7 +256,7 @@ vector<CString> CMFCApplication1Dlg::ParseStringReceived(CString mess) {
 			tmp = "";
 		}
 		else {
-			tmp = tmp + mess.GetAt	(i);
+			tmp = tmp + mess.GetAt(i);
 		}
 		
 	}
@@ -426,7 +444,7 @@ void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 
 }
 
-bool CMFCApplication1Dlg::SendViaTCP(const char* targetIP, const CString& payload)
+bool CMFCApplication1Dlg::SendViaTCP(const char* targetIP, const CString& payload, CString &response)
 {
 	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (s == INVALID_SOCKET) return false;
@@ -437,16 +455,26 @@ bool CMFCApplication1Dlg::SendViaTCP(const char* targetIP, const CString& payloa
 	//addr.sin_addr.s_addr = inet_addr(targetIP);
 	inet_pton(AF_INET, targetIP, &addr.sin_addr); // convert IP string to binary form
 
-	if (connect(s, (sockaddr*)&addr, sizeof(addr)) != SOCKET_ERROR) {
-		int bytes = (payload.GetLength() + 1) * sizeof(wchar_t);
-		send(s, reinterpret_cast<const char*>(payload.GetString()), bytes, 0);
-	}
-	else {
+	if (connect(s, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
+		closesocket(s);
 		AfxMessageBox(_T("Cannot connect"));
 		return false;
+		
 	}
+
+	CT2A asciiPayload(payload);
+	send(s, asciiPayload, (int)strlen(asciiPayload), 0);
+
+	char buf[65536];
+	int bytesReceived = recv(s, buf, sizeof(buf) - 1, 0);
+
+	if (bytesReceived > 0) {
+		buf[bytesReceived] = '\0';
+		response = CA2T(buf);
+	}
+	
 	closesocket(s);
-	return true;
+	return (bytesReceived > 0);
 }
 
 void CMFCApplication1Dlg::OnBnClickedButton1()
@@ -474,16 +502,27 @@ void CMFCApplication1Dlg::OnBnClickedButton1()
 	int nIndex = pListBox->GetCurSel();
 	CString receiverName;
 	pListBox->GetText(nIndex, receiverName);
-	CString sendingMessage = m_currentUser + ":" + content + ":" + receiverName + ":";
+	CString sendingMessage = _T("3|") + m_currentUser + "|" + content + "|" + receiverName;
 
-	/////////////////////////////////////////////////////
-	m_db.InsertMessage(content, m_currentUser, receiverName);
-
+	CString receive = _T("");
 	//::Use directly function from API (OS)
-	SendViaTCP("127.0.0.1", sendingMessage);
+	
+	if (!SendViaTCP("127.0.0.1", sendingMessage, receive)) {
+		AfxMessageBox(_T("Cannot send connect or message"));
+	}
+	else {
+		if (receive.Left(2) == _T("OK")) {
+			// gửi yêu cầu cập nhật (load message)
+			AfxMessageBox(_T("Done send"));
+		}
+		else {
+			AfxMessageBox(_T("Cannot send message"));
+		}
+	}
 
 	SetDlgItemText(IDC_EDIT_MESSAGE, _T(""));
 
+	//////////////////////////
 	LoadChatToUI(receiverName);
 
 }
@@ -516,6 +555,7 @@ void CMFCApplication1Dlg::OnLbnSelchangeListFriend()
 
 			
 		}
+
 		LoadChatToUI(friendName);
 		
 	}
@@ -562,77 +602,52 @@ int CMFCApplication1Dlg::CountWrapLines(const CString& text)
 
 void CMFCApplication1Dlg::LoadChatToUI(CString friendName)
 {
-	//vector<message> messages = m_db.LoadMessage(m_currentUser, friendName);
-	//CString myContent, friendContent;
-	//const CString NL = _T("\r\n");
-	//
-	//for (size_t i = 0; i < messages.size(); ++i)
-	//{
-	//	bool isMe = (messages[i].sender == m_currentUser);
-	//
-	//	int L = CountWrapLines(isMe ? IDC_EDIT_MESSAGE_ME : IDC_EDIT_MESSAGE_OTHER,messages[i].content);
-	//
-	//	CString prefix = (i > 0) ? NL : _T("");     
-	//	CString blank = MultipleString(NL, L - 1); 
-	//
-	//	if (isMe) {
-	//		myContent += prefix + messages[i].content;
-	//		friendContent += prefix + blank;
-	//	}
-	//	else {
-	//		friendContent += prefix + messages[i].content;
-	//		myContent += prefix + blank;
-	//	}
-	//}
-	//
-	//SetDlgItemText(IDC_EDIT_MESSAGE_ME, myContent);
-	//SetDlgItemText(IDC_EDIT_MESSAGE_OTHER, friendContent);
-	//
-	//// cuộn xuống tin mới nhất (hai ô tự đồng bộ nhờ OnVscroll...)
-	//CEdit* pMe = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_ME);
-	//int len = pMe->GetWindowTextLength();
-	//pMe->SetSel(len, len, FALSE);
-	//pMe->SendMessage(EM_SCROLLCARET, 0, 0);
-	//CEdit* pOther = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_OTHER);
-	//len = pOther->GetWindowTextLength();
-	//pOther->SetSel(len, len, FALSE);
-	//pOther->SendMessage(EM_SCROLLCARET, 0, 0);
 
-	vector<message> messages = m_db.LoadMessage(m_currentUser, friendName);
-	CString myContent;
-	CString friendContent;
-
-	for (int i = 0; i < messages.size(); ++i)
+	if (friendName.IsEmpty()) return;
+	// 1. Gửi action 4 lên server
+	CString payload = _T("4|") + m_currentUser + _T("|") + friendName;
+	CString response = _T("");
+	if (!SendViaTCP("127.0.0.1", payload, response) || response.Left(2) != _T("OK")) {
+		return; // Lỗi mạng hoặc server không phản hồi
+	}
+	// 2. Parse chuỗi dạng: OK|<count>|sender1|content1|sender2|content2...
+	int curPos = 0;
+	response.Tokenize(_T("|"), curPos); // Bỏ qua "OK"
+	CString strCount = response.Tokenize(_T("|"), curPos); // Bỏ qua số lượng
+	CString myContent = _T("");
+	CString friendContent = _T("");
+	while (curPos != -1)
 	{
-		// count how manny lines for this message
-		int lines = CountWrapLines(messages[i].content);
-
-		if (messages[i].sender == m_currentUser)
+		CString sender = response.Tokenize(_T("|"), curPos);
+		if (curPos == -1) break; // Hết chuỗi
+		CString msgContent = response.Tokenize(_T("|"), curPos);
+		// Đếm số dòng của tin nhắn này để căn thẳng hàng giữa 2 ô Edit
+		int lines = CountWrapLines(msgContent);
+		if (sender == m_currentUser)
 		{
-			// Leave \r\n on OTHER side
+			// Tin nhắn của tôi -> bên kia để trống dòng
 			friendContent += MultipleString(_T("\r\n"), lines);
-
-			myContent += messages[i].content;
-			myContent += _T("\r\n");
+			myContent += msgContent + _T("\r\n");
 		}
 		else
 		{
-			// Leave \r\n on ME side
+			// Tin nhắn của bạn -> bên tôi để trống dòng
 			myContent += MultipleString(_T("\r\n"), lines);
-
-			friendContent += messages[i].content;
-			friendContent += _T("\r\n");
+			friendContent += msgContent + _T("\r\n");
 		}
 	}
+	// 3. Cập nhật dữ liệu lên UI
 	SetDlgItemText(IDC_EDIT_MESSAGE_ME, myContent);
 	SetDlgItemText(IDC_EDIT_MESSAGE_OTHER, friendContent);
-
+	// 4. Cuộn màn hình xuống dòng cuối cùng
 	CEdit* pMe = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_ME);
 	int len = pMe->GetWindowTextLength();
 	pMe->SetSel(len, len, FALSE);
 	pMe->SendMessage(EM_SCROLLCARET, 0, 0);
-
-
+	CEdit* pOther = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_OTHER);
+	len = pOther->GetWindowTextLength();
+	pOther->SetSel(len, len, FALSE);
+	pOther->SendMessage(EM_SCROLLCARET, 0, 0);
 }
 
 void CMFCApplication1Dlg::OnEnChangeEditMessageOther()
@@ -640,37 +655,6 @@ void CMFCApplication1Dlg::OnEnChangeEditMessageOther()
 
 	
 }
-
-//void CMFCApplication1Dlg::OnEnterMessageOther()
-//{
-//	CEdit* pEdit = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_OTHER);
-//
-//	// Get line which have caret (before go down)
-//	int line = pEdit->LineFromChar(-1); //-1: current caret
-//	int charIndex = pEdit->LineIndex(line);
-//	int lineLen = pEdit->LineLength(charIndex);
-//
-//	if (lineLen <= 0) return; // null -> no save
-//
-//	CString lineText;
-//	int bufSize = lineLen + 1;
-//	TCHAR* buf = lineText.GetBuffer(bufSize);
-//	*((WORD*)buf) = (WORD)bufSize; //CEdit::GetLine need 2 first byte is size
-//	int copied = pEdit->GetLine(line, buf, bufSize);
-//	lineText.ReleaseBuffer(copied);
-//
-//	if (lineText.IsEmpty()) return; // null -> no save
-//
-//	// selected friend is sender
-//	CListBox* pListBox = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
-//	int nIndex = pListBox->GetCurSel();
-//
-//	CString friendName;
-//	pListBox->GetText(nIndex, friendName);
-//
-//	//////////////////////////////////////////////////////
-//	//m_db.InsertMessage(lineText, friendName, m_currentUser);
-//}
 
 BOOL CMFCApplication1Dlg::PreTranslateMessage(MSG* pMsg)
 {
