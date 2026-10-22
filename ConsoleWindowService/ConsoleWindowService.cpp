@@ -171,38 +171,60 @@ bool SendFull(SOCKET s, const char* data, int len) {
 volatile LONG gActiveClients = 0;
 
 // 1 client 1 thread
+/*
+* TCP mở 1 đường kết nối, các gói tin đi qua TCP có thể bị dính vào nhau (VD khi gửi 2 tn liên tiếp) 
+* hoặc bị tách ra mà không đúng cấu trúc gốc của từng request
+* Sử dụng accumulated kết hợp với \n để phân biệt giữa các lần gửi request tới server rồi xử lí từng phần
+*/
 DWORD WINAPI ClientThread(LPVOID pParam)
 {
-    /*TODO
-    * Thực hiện các logic đăng nhập, đăng kí, hiển thị của từng client
-    */
     SOCKET s = (SOCKET)(UINT_PTR)pParam;
     char buf[1024];
+    std::string accumulated = "";   // bộ đệm chống dính gói TCP
+    std::string username = "";      // username của client này (biết sau khi login)
     while (WaitForSingleObject(ghSvcStopEvent, 0) == WAIT_TIMEOUT)
     {
         fd_set rs;
         FD_ZERO(&rs);
         FD_SET(s, &rs);
         timeval tv = { 1, 0 };
-
         int r = select(0, &rs, NULL, NULL, &tv);
         if (r == SOCKET_ERROR) break;
         if (r == 0) continue;
-
-        int n = recv(s, buf, sizeof(buf)-1, 0);
-        /*TODO:
-        * Xử lí nhận dữ liệu
-        */
-        if (n <= 0) break;                    
+        int n = recv(s, buf, sizeof(buf) - 1, 0);
+        if (n <= 0) break;
         buf[n] = '\0';
-        
-        std::string response = ActionHandler::ProcessRequest(buf);
-        // Gửi kết quả về lại client
-        if (!SendFull(s, response.c_str(), (int)response.length())) {
-            break;
+        accumulated += buf;
+        // Xử lý từng dòng (phân cách bằng \n) để tránh dính gói TCP
+        size_t pos;
+        while ((pos = accumulated.find('\n')) != std::string::npos)
+        {
+            std::string line = accumulated.substr(0, pos);
+            accumulated.erase(0, pos + 1);
+            // Bỏ \r nếu có
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            if (line.empty()) continue;
+            // Xử lý request, truyền socket vào để HandleLogin dùng Register
+            std::string response = ActionHandler::ProcessRequest(line, s);
+            // Kiểm tra xem client vừa login thành công không -> lưu username
+            // Nếu line bắt đầu bằng "1|" (ACTION_LOGIN) và response == "OK"
+            if (line.size() >= 2 && line[0] == '1' && line[1] == '|' && response == "OK") {
+                // Tách lấy username từ "1|username|password"
+                size_t first = line.find('|');
+                size_t second = line.find('|', first + 1);
+                if (first != std::string::npos && second != std::string::npos) {
+                    username = line.substr(first + 1, second - first - 1);
+                }
+            }
+            // Gửi response về client (thêm \n ở cuối)
+            std::string packet = response + "\n";
+            if (!SendFull(s, packet.c_str(), (int)packet.length())) {
+                break;
+            }
         }
     }
-
+    // Client ngắt kết nối -> xóa khỏi Map
+    ClientManager::Remove(username);
     closesocket(s);
     InterlockedDecrement(&gActiveClients);
     return 0;

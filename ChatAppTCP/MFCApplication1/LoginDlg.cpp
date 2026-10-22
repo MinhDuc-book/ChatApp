@@ -74,29 +74,11 @@ void CLoginDlg::OnBnClickedButtonLogin()
 	CString username, password;
 	GetDlgItemText(IDC_EDIT_USERNAME, username);
 	GetDlgItemText(IDC_EDIT_PASSWORD, password);
-	//check null
-	//if (username.IsEmpty() || password.IsEmpty()) {
-	//	AfxMessageBox(_T("Please input username AND password"));
-	//	return;
-	//}
-	//
-	//// check existed username, if not -> require sign in
-	//if (!m_db.CheckExist(username)) {
-	//	AfxMessageBox(_T("Username does not exist.\r\n Create new: Input username and password -> click Sign In"));
-	//	return;
-	//}
-	//
-	//// if log in successfully -> return Click login OK
-	//int user_id = m_db.CheckLogin(username, password);
-	//if (user_id > 0) {
-	//	m_savedUser = m_db.GetUserFromID(user_id);
-	//	EndDialog(IDC_BUTTON_LOGIN);
-	//	return;
-	//}
-	//else {
-	//	AfxMessageBox(_T("Incorrect password"));
-	//	return;
-	//}
+
+	if (username.IsEmpty() || password.IsEmpty()) {
+		AfxMessageBox(_T("Please input infomation"));
+	}
+
 	ActionLogin action;
 	action.username = username;
 	action.password = password;
@@ -108,19 +90,17 @@ void CLoginDlg::OnBnClickedButtonLogin()
 
 	CString response = _T("");
 	if (!SendViaTCP("127.0.0.1", payload, response)) {
-		AfxMessageBox(_T("Cannot Login"));
+		AfxMessageBox(_T("Cannot Login\r\n") + response);
 	}
 	else {
 		if (response.Left(2) == _T("OK"))
 		{
-			// Đăng nhập thành công!
 			m_savedUser = username;
-			EndDialog(IDC_BUTTON_LOGIN); // Thoát Dialog Login để vào Dialog Chat
+			EndDialog(IDC_BUTTON_LOGIN);
 
 		}
 		else
 		{
-			// Đăng nhập thất bại!
 			AfxMessageBox(_T("Đăng nhập thất bại: Sai tài khoản hoặc mật khẩu!\r\n") + response);
 		}
 	}
@@ -145,7 +125,7 @@ bool CLoginDlg::SendViaTCP(const char* targetIP, const CString& payload, CString
 		return false;
 	}
 
-	CT2A asciiPayload(payload);
+	CT2A asciiPayload(payload + "\n");
 	send(s, asciiPayload, (int)strlen(asciiPayload), 0);
 
 	char buf[512];

@@ -9,7 +9,8 @@ enum ActionType {
     ACTION_REGISTER = 2,
     ACTION_SEND_MESSAGE = 3,
     ACTION_LOAD_MESSAGE = 4,
-    ACTION_GET_FRIENDS = 5
+    ACTION_GET_FRIENDS = 5,
+    ACTION_REGISTER_CLIENT = 6
 };
 
 // Cấu trúc cơ sở

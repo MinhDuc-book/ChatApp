@@ -22,7 +22,7 @@ std::vector<std::string> ActionHandler::Split(const std::string& str, char delim
     return tokens;
 }
 
-std::string ActionHandler::ProcessRequest(const std::string& rawMessage) {
+std::string ActionHandler::ProcessRequest(const std::string& rawMessage, SOCKET callerSocket) {
     if (rawMessage.empty()) {
         return "FAIL|EMPTY_REQUEST";
     }
@@ -43,7 +43,10 @@ std::string ActionHandler::ProcessRequest(const std::string& rawMessage) {
     // Điều hướng tới đúng logic tương ứng
     switch (actionCode) {
     case ACTION_LOGIN:
-        return HandleLogin(fields);
+        return HandleLogin(fields, callerSocket);
+
+    case ACTION_REGISTER:
+        return HandleSignin(fields);
 
     case ACTION_GET_FRIENDS:
         return HandleGetFriend(fields);
@@ -53,14 +56,25 @@ std::string ActionHandler::ProcessRequest(const std::string& rawMessage) {
 
     case ACTION_LOAD_MESSAGE:
         return HandleLoadMessages(fields);
+    case ACTION_REGISTER_CLIENT: 
+    {
+        return HandleRegisterClient(fields, callerSocket);
+       
+    }
 
     default:
         return "FAIL|UNKNOWN_ACTION";
     }
 }
 
+std::string ActionHandler::HandleRegisterClient(const std::vector<std::string>& fields, SOCKET callerSocket) {
+    if (fields.size() < 2) return "FAIL|MISSING_PARAMETERS";
+    ClientManager::Register(fields[1], callerSocket);
+    return "OK";
+}
+
 // Logic kiểm tra Đăng nhập
-std::string ActionHandler::HandleLogin(const std::vector<std::string>& fields) {
+std::string ActionHandler::HandleLogin(const std::vector<std::string>& fields, SOCKET callerSocket) {
     // Định dạng: 1|username|password
     if (fields.size() < 3) {
         return "FAIL|MISSING_PARAMETERS";
@@ -72,12 +86,32 @@ std::string ActionHandler::HandleLogin(const std::vector<std::string>& fields) {
 
     int loginResult = g_db.CheckLogin(loginAction.username, loginAction.password);
 
-    if (loginResult > 0) { 
+    if (loginResult > 0) {
+        ClientManager::Register(fields[1], callerSocket);
         return ("OK");
     }
     else {
         return "FAIL|INVALID_CREDENTIALS";
     }
+}
+
+std::string ActionHandler::HandleSignin(const std::vector<std::string>& fields) {
+    if (fields.size() < 3) return "FAIL|MISSING_PARAMETERS";
+    string rs;
+    CString username(fields[1].c_str());
+    CString password(fields[2].c_str());
+
+    if (g_db.CheckExist(username)) {
+        rs = "FAIL|USERNAME EXISTED";
+    }
+    else {
+        Info info;
+        info.username = username;
+        info.password = password;
+        g_db.InsertData(info);
+        rs = "OK|SIGNIN_SUCCESS";
+    }
+    return rs;
 }
 
 std::string ActionHandler::HandleGetFriend(const std::vector<std::string>& fields) {
@@ -101,13 +135,18 @@ std::string ActionHandler::HandleGetFriend(const std::vector<std::string>& field
     return rs;
 }
 
-// Logic gửi tin nhắn (sau này bổ sung tiếp)
+// Logic gửi tin nhắn
 std::string ActionHandler::HandleSendMessage(const std::vector<std::string>& fields) {
     // Định dạng: 3|sender|receiver|content
     if (fields.size() < 4) return "FAIL|MISSING_PARAMETERS";
 
     bool ok = g_db.InsertMessage(CString(fields[3].c_str()), CString(fields[1].c_str()), CString(fields[2].c_str()));
-    return ok ? "OK|MESSAGE_SENT" : "FAIL|CANNOT_SAVE_MESSAGE";
+
+    // gửi sang bên đầu bên kia
+    if (!ok) return "FAIL|CANNOT_SAVE_MESSAGE";
+    ClientManager::SendTo(fields[2], "NEW_MSG|" + fields[1]);
+
+    return "OK|MESSAGE_SENT";
 }
 
 // Logic load tin nhắn
@@ -132,3 +171,4 @@ std::string ActionHandler::HandleLoadMessages(const std::vector<std::string>& fi
 
     return response;
 }
+

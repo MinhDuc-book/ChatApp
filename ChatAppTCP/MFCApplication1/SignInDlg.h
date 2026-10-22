@@ -1,7 +1,7 @@
 #pragma once
-#include "DatabaseManager.h"
 #include "resource.h"
 #include "afxdialogex.h"
+#include <afxsock.h>
 
 
 class CSigninDlg : public CDialogEx
@@ -23,9 +23,10 @@ protected:
     virtual BOOL OnInitDialog();
 
 private:
-    DatabaseManager m_db;
+    int SERVER_PORT = 9999;
 public:
-
+    bool SendViaTCP(const char* targetIP, const CString& payload, CString& response);
+    
     afx_msg void OnEnChangeEditUsernameSign();
     afx_msg void OnEnChangeEditPasswordSign();
     afx_msg void OnEnChangeEdit1();

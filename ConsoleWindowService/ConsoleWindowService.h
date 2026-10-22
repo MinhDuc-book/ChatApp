@@ -11,6 +11,11 @@
 #include <vector>
 #include <atlstr.h> 
 #include "DatabaseManager.h"
+#include <sstream>
+#include <unordered_map>
+#include <mutex>
+#include <memory>
+#include <thread>
 
 #pragma comment(lib, "Ws2_32.lib")
 #pragma comment(lib, "advapi32.lib")

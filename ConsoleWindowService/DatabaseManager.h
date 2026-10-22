@@ -2,7 +2,8 @@
 #include "sqlite3.h"
 #include <string>
 #include <vector>
-#include <atlstr.h> 
+#include <atlstr.h>
+#include "md5.h"
 
 using namespace std;
 
@@ -22,6 +23,7 @@ int CallBack(void* data, int argc, char** argv, char** errmsg);
 class DatabaseManager {
 private:
 	sqlite3* db = nullptr;
+	MD5 md5;
 public:
 	string rs;
 	~DatabaseManager();

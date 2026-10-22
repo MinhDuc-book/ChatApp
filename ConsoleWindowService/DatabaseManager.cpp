@@ -176,8 +176,11 @@ void DatabaseManager::InsertData(Info info) {
     string sql = "INSERT INTO users (username, password) VALUES (";
     CT2A usr(info.username);
     CT2A pwd(info.password);
+
+    //hash password
+    string pwdHash = md5(string(pwd));
     sql += "'" + string(usr) + "', ";
-    sql += "'" + string(pwd) + "'";
+    sql += "'" + string(pwdHash) + "'";
     sql += ");";
 
 
@@ -210,9 +213,11 @@ int DatabaseManager::CheckLogin(CString username, CString password) {
     CT2A pass(password);
     int usr_id;
 
+    string passHash = md5(string(pass));
+
     string sql = "SELECT id FROM users WHERE ";
     sql += "username = '" + string(usr) + "' ";
-    sql += "AND password = '" + string(pass) + "';";
+    sql += "AND password = '" + passHash + "';";
 
     // sqlite3_prepare_v2: prepare before perform a command
     /*

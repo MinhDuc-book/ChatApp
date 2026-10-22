@@ -2,6 +2,8 @@
 #include "framework.h"
 #include "MFCApplication1.h"
 #include "SignInDlg.h"
+#pragma comment(lib, "ws2_32.lib")
+
 
 CSigninDlg::CSigninDlg(CWnd* pParent)
 	: CDialogEx(IDD_SIGNIN_DIALOG, pParent)
@@ -26,8 +28,12 @@ BOOL CSigninDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	m_db.OpenDatabase(_T("D:\\AAMduwccc\\project\\C++\\usr.sql"));
-	m_db.CreateTables();
+	WSADATA wsaData;
+	int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (result != 0) {
+		AfxMessageBox(_T("Cannot WSAStartUp"));
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -51,6 +57,38 @@ void CSigninDlg::OnEnChangeEditPasswordSign()
 	// TODO:  Add your control notification handler code here
 }
 
+bool CSigninDlg::SendViaTCP(const char* targetIP, const CString& payload, CString& response)
+{
+	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (s == INVALID_SOCKET) return false;
+
+	sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons((u_short)SERVER_PORT);
+	//addr.sin_addr.s_addr = inet_addr(targetIP);
+	inet_pton(AF_INET, targetIP, &addr.sin_addr); // convert IP string to binary form
+
+	if (connect(s, (sockaddr*)&addr, sizeof(addr)) == SOCKET_ERROR) {
+		closesocket(s);
+		AfxMessageBox(_T("Cannot connect to Server"));
+		return false;
+	}
+
+	CT2A asciiPayload(payload + "\n");
+	send(s, asciiPayload, (int)strlen(asciiPayload), 0);
+
+	char buf[512];
+	int bytesReceived = recv(s, buf, sizeof(buf) - 1, 0);
+
+	if (bytesReceived > 0) {
+		buf[bytesReceived] = '\0';
+		response = CA2T(buf); // Đưa chuỗi nhận được vào outResponse
+	}
+
+	closesocket(s);
+	return (bytesReceived > 0);
+}
+
 void CSigninDlg::OnBnClickedOk()
 {
 	// TODO: Add your control notification handler code here
@@ -69,21 +107,25 @@ void CSigninDlg::OnBnClickedOk()
 		return;
 	}
 	else {
-		//check exist
-		if (m_db.CheckExist(username) == true) {
-			AfxMessageBox(_T("Username existed"));
+		CString payload = _T("2|") + username + _T("|") + password;
+		CString response = _T("");
+
+		if (!SendViaTCP("127.0.0.1", payload, response)) {
+			AfxMessageBox(_T("Cannot send request sign in\r\n") + response);
 			return;
 		}
 		else {
-			Info info;
-			info.username = username;
-			info.password = password;
-			m_db.InsertData(info);
-			AfxMessageBox(_T("Done registry"));
-			
+			if (response.Left(2) == _T("OK")) {
+				AfxMessageBox(_T("Done Sign In"));
+				CDialogEx::OnOK();
+			}
+			else {
+				AfxMessageBox(_T("Sign In Error\r\n") + response);
+				return;
+			}
 		}
 	}
-	CDialogEx::OnOK();
+	
 }
 
 void CSigninDlg::OnEnChangeEditPasswordSignVerify()

@@ -201,7 +201,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\sqlite-amalgamation-3530400\sqlite3.h" />
     <ClInclude Include="..\..\..\..\sqlite-amalgamation-3530400\sqlite3ext.h" />
-    <ClInclude Include="DatabaseManager.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="LoginDlg.h" />
     <ClInclude Include="MFCApplication1.h" />
@@ -218,7 +217,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="DatabaseManager.cpp" />
     <ClCompile Include="LoginDlg.cpp" />
     <ClCompile Include="MFCApplication1.cpp" />
     <ClCompile Include="MFCApplication1Dlg.cpp" />

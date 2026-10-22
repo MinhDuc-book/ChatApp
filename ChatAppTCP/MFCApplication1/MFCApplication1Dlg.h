@@ -4,7 +4,6 @@
 
 #pragma once
 #include "resource.h"
-#include "DatabaseManager.h"
 #include <vector>
 #include <atomic>
 #include <memory>
@@ -30,7 +29,6 @@ public:
 	enum { IDD = IDD_MFCAPPLICATION1_DIALOG };
 #endif
 private:
-	DatabaseManager m_db;
 	bool m_syncScrolling = false;
 	SOCKET m_receiveSocket = INVALID_SOCKET;
 	SOCKET m_sendSocket = INVALID_SOCKET;
@@ -49,7 +47,7 @@ private:
 	void StopServer();
 	bool SendViaTCP(const char* targetIP, const CString& payload, CString &response);
 	void HandleIncoming(const CString& message);
-	vector<CString> ParseStringReceived(CString mess);
+	std::vector<CString> ParseStringReceived(CString mess);
 	int CountContinousLineOther(int componentId);
 
 protected:
@@ -65,6 +63,9 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	CString m_currentUser;
+	SOCKET  m_hSocket = INVALID_SOCKET; // Socket kết nối duy nhất tới Server
+	HANDLE  m_hResponseEvent = NULL;    // Event đồng bộ khi gửi request
+	CString m_lastResponse;
 
 	afx_msg void OnEnChangeRichedit21();
 	afx_msg void OnEnChangeEditMessage();

@@ -1,5 +1,4 @@
 #pragma once
-#include "DatabaseManager.h"
 #include "resource.h"
 #include "afxdialogex.h"
 #include <afxsock.h>
@@ -25,9 +24,7 @@ protected:
     afx_msg HCURSOR OnQueryDragIcon();
 
 private:
-    DatabaseManager m_db;
     int SERVER_PORT = 9999;
-    USHORT m_receivePort = 12226;
 public:
     CString m_savedUser;
 
