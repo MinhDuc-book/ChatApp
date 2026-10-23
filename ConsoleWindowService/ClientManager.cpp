@@ -29,7 +29,7 @@ SOCKET ClientManager::Find(const std::string& username) {
 bool ClientManager::SendTo(const std::string& username, const std::string& msg) {
 	SOCKET sock = Find(username);
 	if (sock == INVALID_SOCKET) {
-
+		return false;
 	}
 	std::string packet = msg + "\n";
 	std::lock_guard<std::mutex> lock(s_sendMutex);

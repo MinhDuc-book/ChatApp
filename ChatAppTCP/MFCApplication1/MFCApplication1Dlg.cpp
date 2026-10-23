@@ -112,7 +112,6 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 		return FALSE;
 	}
 
-	// Khởi động luồng đọc nền NGAY LẬP TỨC để lắng nghe server
 	m_stopping = false;
 	m_pServerThread = AfxBeginThread(TCPServerThread, this, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED);
 	m_pServerThread->m_bAutoDelete = FALSE;
@@ -124,7 +123,7 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 	CString loginResp;
 	SendViaTCP("127.0.0.1", loginPayload, loginResp);
 
-	// E. Lấy danh sách bạn bè
+	// Lấy danh sách bạn bè
 	CString payload;
 	payload.Format(_T("%d|%s"), 5, (LPCTSTR)m_currentUser);
 	CString response = _T("");
@@ -258,6 +257,7 @@ bool CMFCApplication1Dlg::SendViaTCP(const char* targetIP, const CString& payloa
 	if (dwWait == WAIT_OBJECT_0) {
 		response = m_lastResponse;
 		response.TrimRight(_T("\r\n"));
+		//AfxMessageBox(response);
 		return true;
 	}
 
@@ -298,6 +298,8 @@ void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 			currentSelectedFriend = currentSelectedFriend.Mid(3);
 		}
 	}
+
+	SetDlgItemText(IDC_EDIT_NOTIFICATION,_T("New message from: ") + sender);
 
 	if (curSel != LB_ERR && currentSelectedFriend == sender)
 	{

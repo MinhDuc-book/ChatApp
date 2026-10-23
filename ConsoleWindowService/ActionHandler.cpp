@@ -144,9 +144,15 @@ std::string ActionHandler::HandleSendMessage(const std::vector<std::string>& fie
 
     // gửi sang bên đầu bên kia
     if (!ok) return "FAIL|CANNOT_SAVE_MESSAGE";
-    ClientManager::SendTo(fields[2], "NEW_MSG|" + fields[1]);
+    std::string isOnline = "";
+    if (ClientManager::SendTo(fields[2], "NEW_MSG|" + fields[1])) {
+        isOnline = "OK|MESSAGE_SENT_ONLINE";
+    }
+    else {
+        isOnline = "OK|MESSAGE_SENT_OFFLINE";
+    }
 
-    return "OK|MESSAGE_SENT";
+    return isOnline;
 }
 
 // Logic load tin nhắn
