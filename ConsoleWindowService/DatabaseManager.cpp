@@ -143,7 +143,7 @@ CString DatabaseManager::GetUserFromID(int id)
     CString curr_user;
 
     string sql = "SELECT username FROM users WHERE id = ";
-    sql += to_string(id) + ";";
+    sql += to_string(id);
 
     sqlite3_stmt* stmt = nullptr;
 
