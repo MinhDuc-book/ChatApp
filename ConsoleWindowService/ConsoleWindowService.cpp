@@ -180,8 +180,8 @@ DWORD WINAPI ClientThread(LPVOID pParam)
 {
     SOCKET s = (SOCKET)(UINT_PTR)pParam;
     char buf[1024];
-    std::string accumulated = "";   // bộ đệm chống dính gói TCP
-    std::string username = "";      // username của client này (biết sau khi login)
+    std::string accumulated = "";   
+    std::string username = "";  
     while (WaitForSingleObject(ghSvcStopEvent, 0) == WAIT_TIMEOUT)
     {
         fd_set rs;
@@ -195,7 +195,7 @@ DWORD WINAPI ClientThread(LPVOID pParam)
         if (n <= 0) break;
         buf[n] = '\0';
         accumulated += buf;
-        // Xử lý từng dòng (phân cách bằng \n) để tránh dính gói TCP
+        // tách
         size_t pos;
         while ((pos = accumulated.find('\n')) != std::string::npos)
         {
@@ -204,26 +204,28 @@ DWORD WINAPI ClientThread(LPVOID pParam)
             // Bỏ \r nếu có
             if (!line.empty() && line.back() == '\r') line.pop_back();
             if (line.empty()) continue;
-            // Xử lý request, truyền socket vào để HandleLogin dùng Register
+
             std::string response = ActionHandler::ProcessRequest(line, s);
-            // Kiểm tra xem client vừa login thành công không -> lưu username
-            // Nếu line bắt đầu bằng "1|" (ACTION_LOGIN) và response == "OK"
-            if (line.size() >= 2 && line[0] == '1' && line[1] == '|' && response == "OK") {
-                // Tách lấy username từ "1|username|password"
-                size_t first = line.find('|');
-                size_t second = line.find('|', first + 1);
-                if (first != std::string::npos && second != std::string::npos) {
-                    username = line.substr(first + 1, second - first - 1);
+
+            if (response == "OK" && line.size() >= 2) {
+                // Nếu là mã 1
+                if (line[0] == '1' && line[1] == '|') {
+                    size_t first = line.find('|');
+                    size_t second = line.find('|', first + 1);
+                    if (first != std::string::npos && second != std::string::npos) {
+                        username = line.substr(first + 1, second - first - 1);
+                    }
                 }
-            }
-            // Gửi response về client (thêm \n ở cuối)
-            std::string packet = response + "\n";
-            if (!SendFull(s, packet.c_str(), (int)packet.length())) {
-                break;
+                // Nếu là mã 6
+                else if (line[0] == '6' && line[1] == '|') {
+                    size_t first = line.find('|');
+                    if (first != std::string::npos) {
+                        username = line.substr(first + 1);
+                    }
+                }
             }
         }
     }
-    // Client ngắt kết nối -> xóa khỏi Map
     ClientManager::Remove(username);
     closesocket(s);
     InterlockedDecrement(&gActiveClients);

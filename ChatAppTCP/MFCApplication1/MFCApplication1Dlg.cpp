@@ -186,7 +186,7 @@ UINT CMFCApplication1Dlg::TCPServerThread(LPVOID p)
 	char buf[4096];
 	// vì khi truyền bằng TCP, đôi khi sẽ có lúc bị ghép các gói tin dính nhau
 	// hoặc là bị cắt các gói tin thành nhiều phần
-	// sử dụng cái này kết hợp với \r\n để phân biệt đâu là 1 gói tin hoàn chỉnh
+	// sử dụng cái này kết hợp với \n để phân biệt đâu là 1 gói tin hoàn chỉnh
 	std::string accumulated = "";
 
 	while (!self->m_stopping && self->m_hSocket != INVALID_SOCKET)
@@ -218,15 +218,16 @@ UINT CMFCApplication1Dlg::TCPServerThread(LPVOID p)
 
 			CString msg = CA2T(line.c_str());
 
-			// TRƯỜNG HỢP A: Thông báo đẩy từ Server có tin nhắn mới ("NEW_MSG|sender")
+			//Thông báo đẩy từ Server có tin nhắn mới ("NEW_MSG|sender")
 			if (msg.Left(8) == _T("NEW_MSG|"))
 			{
 				CString* pMsg = new CString(msg);
 				if (!::PostMessage(hwnd, WM_TCP_MSG, 0, (LPARAM)pMsg)) {
 					delete pMsg;
+					pMsg = nullptr;
 				}
 			}
-			// TRƯỜNG HỢP B: Phản hồi của Server cho các lệnh vừa gửi đi (OK|..., FAIL|...)
+			//Phản hồi của Server cho các lệnh vừa gửi đi (OK|..., FAIL|...)
 			else
 			{
 				self->m_lastResponse = msg;
@@ -264,7 +265,7 @@ bool CMFCApplication1Dlg::SendViaTCP(const char* targetIP, const CString& payloa
 	return false;
 }
 
-// 5. XỬ LÝ KHI NHẬN ĐƯỢC THÔNG BÁO "NEW_MSG|sender" TỪ SERVER
+// xử lí nhận thông báo NEW_MSG
 LRESULT CMFCApplication1Dlg::OnPipeMessage(WPARAM wParam, LPARAM lParam) {
 	CString* msg = reinterpret_cast<CString*>(lParam);
 	HandleIncoming(*msg);
