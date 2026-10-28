@@ -277,7 +277,6 @@ void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 {
 
 	if (message.IsEmpty()) return;
-	//AfxMessageBox(_T("ĐÃ NHẬN ĐƯỢC: ") + message);
 	CString msg = message;
 	msg.TrimRight(_T("\r\n"));
 
@@ -333,7 +332,7 @@ void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 	}
 }
 
-// 6. GỬI TIN NHẮN KHI BẤM NÚT SEND
+// GỬI TIN NHẮN KHI BẤM NÚT SEND
 void CMFCApplication1Dlg::OnBnClickedButton1()
 {
 	CString content;
@@ -372,7 +371,7 @@ void CMFCApplication1Dlg::OnBnClickedButton1()
 	}
 }
 
-// 7. CHỌN BẠN TRONG LISTBOX
+// CHỌN BẠN TRONG LISTBOX
 void CMFCApplication1Dlg::OnLbnSelchangeListFriend()
 {
 	CListBox* listFriend = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
