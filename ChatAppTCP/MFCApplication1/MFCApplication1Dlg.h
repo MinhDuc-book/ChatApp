@@ -50,6 +50,8 @@ private:
 	std::vector<CString> ParseStringReceived(CString mess);
 	int CountContinousLineOther(int componentId);
 
+	void AppendChatMessage(const CString& sender, const CString& content, const CString& timeStr, bool isMe);
+
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 // Implementation
@@ -66,6 +68,7 @@ public:
 	SOCKET  m_hSocket = INVALID_SOCKET; // Socket kết nối duy nhất tới Server
 	HANDLE  m_hResponseEvent = NULL;    // Event đồng bộ khi gửi request
 	CString m_lastResponse;
+	CRichEditCtrl m_richChat;
 
 	afx_msg void OnEnChangeRichedit21();
 	afx_msg void OnEnChangeEditMessage();
@@ -82,4 +85,5 @@ public:
 	afx_msg LRESULT OnPipeMessage(WPARAM wParam, LPARAM lParam);
 
 	afx_msg void OnEnChangeEditNotification();
+	afx_msg void OnEnChangeRichedit22();
 };

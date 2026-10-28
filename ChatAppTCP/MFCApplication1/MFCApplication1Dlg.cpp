@@ -46,6 +46,7 @@ CMFCApplication1Dlg::CMFCApplication1Dlg(CWnd* pParent /*=nullptr*/)
 void CMFCApplication1Dlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_RICHEDIT21, m_richChat);
 }
 
 BEGIN_MESSAGE_MAP(CMFCApplication1Dlg, CDialogEx)
@@ -59,11 +60,9 @@ BEGIN_MESSAGE_MAP(CMFCApplication1Dlg, CDialogEx)
 	ON_EN_CHANGE(IDC_EDIT_MESSAGE_OTHER, &CMFCApplication1Dlg::OnEnChangeEditMessageOther)
 	ON_EN_CHANGE(IDC_EDIT_NOTIFICATION, &CMFCApplication1Dlg::OnEnChangeEditNotification)
 
-	ON_CONTROL(EN_VSCROLL, IDC_EDIT_MESSAGE_OTHER, &CMFCApplication1Dlg::OnVscrollMessageOther)
-	ON_CONTROL(EN_VSCROLL, IDC_EDIT_MESSAGE_ME, &CMFCApplication1Dlg::OnVscrollMessageMe)
-
 	ON_MESSAGE(WM_TCP_MSG, &CMFCApplication1Dlg::OnPipeMessage)
 	ON_WM_DESTROY()
+	ON_EN_CHANGE(IDC_RICHEDIT21, &CMFCApplication1Dlg::OnEnChangeRichedit21)
 END_MESSAGE_MAP()
 
 BOOL CMFCApplication1Dlg::OnInitDialog()
@@ -218,7 +217,6 @@ UINT CMFCApplication1Dlg::TCPServerThread(LPVOID p)
 
 			CString msg = CA2T(line.c_str());
 
-			//Thông báo đẩy từ Server có tin nhắn mới ("NEW_MSG|sender")
 			if (msg.Left(8) == _T("NEW_MSG|"))
 			{
 				CString* pMsg = new CString(msg);
@@ -237,6 +235,8 @@ UINT CMFCApplication1Dlg::TCPServerThread(LPVOID p)
 	}
 	return 0;
 }
+
+
 
 bool CMFCApplication1Dlg::SendViaTCP(const char* targetIP, const CString& payload, CString& response)
 {
@@ -299,7 +299,7 @@ void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 		}
 	}
 
-	SetDlgItemText(IDC_EDIT_NOTIFICATION,_T("New message from: ") + sender);
+	
 
 	if (curSel != LB_ERR && currentSelectedFriend == sender)
 	{
@@ -307,6 +307,7 @@ void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 	}
 	else
 	{
+		SetDlgItemText(IDC_EDIT_NOTIFICATION, _T("New message from: ") + sender);
 		int index = pListBox->FindStringExact(-1, sender);
 		if (index == LB_ERR) {
 			index = pListBox->FindStringExact(-1, _T("-->") + sender);
@@ -371,7 +372,6 @@ void CMFCApplication1Dlg::OnBnClickedButton1()
 	}
 }
 
-// CHỌN BẠN TRONG LISTBOX
 void CMFCApplication1Dlg::OnLbnSelchangeListFriend()
 {
 	CListBox* listFriend = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
@@ -400,13 +400,41 @@ void CMFCApplication1Dlg::OnLbnSelchangeListFriend()
 
 		LoadChatToUI(friendName);
 	}
-
-	CEdit* pEditMe = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_OTHER);
-	int len = pEditMe->GetWindowTextLength();
-	pEditMe->SetSel(len, len, FALSE);
 }
 
-// 8. TẢI TOÀN BỘ NỘI DUNG CHAT
+void CMFCApplication1Dlg::AppendChatMessage(const CString& sender, const CString& content, const CString &timeStr, bool isMe) {
+	long len = m_richChat.GetTextLength();
+	m_richChat.SetSel(len, len);
+
+	PARAFORMAT2 pf;
+	ZeroMemory(&pf, sizeof(pf));
+	pf.cbSize = sizeof(pf);
+	pf.dwMask = PFM_ALIGNMENT;
+	pf.wAlignment = isMe ? PFA_RIGHT : PFA_LEFT;
+	m_richChat.SetParaFormat(pf);
+
+	CHARFORMAT2 cf;
+	ZeroMemory(&cf, sizeof(cf));
+	cf.dwMask =CFM_COLOR | CFM_BOLD | CFM_SIZE;
+	cf.yHeight = 150;
+	cf.dwEffects = CFE_BOLD;
+	cf.crTextColor = RGB(150, 150, 150);
+	m_richChat.SetSelectionCharFormat(cf);
+
+	CString timeDisplay = _T("[") + timeStr + _T("]\r\n");
+	m_richChat.ReplaceSel(timeDisplay);
+	
+	cf.yHeight = 180;
+	cf.dwEffects = 0;
+	cf.crTextColor = RGB(0, 0, 0);
+	m_richChat.SetSelectionCharFormat(cf);
+
+	CString body = content + _T("\r\n\r\n");
+	m_richChat.ReplaceSel(body);
+
+	m_richChat.SendMessage(WM_VSCROLL, SB_BOTTOM, 0);
+}
+
 void CMFCApplication1Dlg::LoadChatToUI(CString friendName)
 {
 	if (friendName.IsEmpty()) return;
@@ -416,69 +444,23 @@ void CMFCApplication1Dlg::LoadChatToUI(CString friendName)
 	if (!SendViaTCP("127.0.0.1", payload, response) || response.Left(2) != _T("OK")) {
 		return;
 	}
-
+	
+	m_richChat.SetWindowText(_T(""));
 	int curPos = 0;
-	response.Tokenize(_T("|"), curPos); // Bỏ qua "OK"
-	CString strCount = response.Tokenize(_T("|"), curPos); // Bỏ qua số lượng
-	CString myContent = _T("");
-	CString friendContent = _T("");
+	response.Tokenize(_T("|"), curPos); // OK
+	CString strCount = response.Tokenize(_T("|"), curPos);
 
 	while (curPos != -1)
 	{
 		CString sender = response.Tokenize(_T("|"), curPos);
 		if (curPos == -1) break;
 		CString msgContent = response.Tokenize(_T("|"), curPos);
-
-		int lines = CountWrapLines(msgContent);
-		if (sender == m_currentUser)
-		{
-			friendContent += MultipleString(_T("\r\n"), lines);
-			myContent += msgContent + _T("\r\n");
-		}
-		else
-		{
-			myContent += MultipleString(_T("\r\n"), lines);
-			friendContent += msgContent + _T("\r\n");
-		}
+		if (curPos == -1) break;
+		CString sentTime = response.Tokenize(_T("|"), curPos); 
+		bool isMe = (sender == m_currentUser);
+		
+		AppendChatMessage(sender, msgContent, sentTime, isMe);
 	}
-
-	SetDlgItemText(IDC_EDIT_MESSAGE_ME, myContent);
-	SetDlgItemText(IDC_EDIT_MESSAGE_OTHER, friendContent);
-
-	CEdit* pMe = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_ME);
-	int len = pMe->GetWindowTextLength();
-	pMe->SetSel(len, len, FALSE);
-	pMe->SendMessage(EM_SCROLLCARET, 0, 0);
-
-	CEdit* pOther = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_OTHER);
-	len = pOther->GetWindowTextLength();
-	pOther->SetSel(len, len, FALSE);
-	pOther->SendMessage(EM_SCROLLCARET, 0, 0);
-}
-
-CString CMFCApplication1Dlg::MultipleString(CString str, int times) {
-	CString rs;
-	for (int i = 0; i < times; ++i) rs += str;
-	return rs;
-}
-
-int CMFCApplication1Dlg::CountWrapLines(const CString& text)
-{
-	int lines = (text.GetLength() / 28) + 1;
-	return max(1, lines);
-}
-
-int CMFCApplication1Dlg::CountContinousLineOther(int componentID) {
-	int countLineContinous = 0;
-	CEdit* pEdit = (CEdit*)GetDlgItem(componentID);
-	int totalLine = pEdit->GetLineCount();
-	for (int i = totalLine - 1; i >= 0; --i) {
-		int charIndex = pEdit->LineIndex(i);
-		int lineLen = pEdit->LineLength(charIndex);
-		if (lineLen > 0) countLineContinous++;
-		else if (countLineContinous > 0) break;
-	}
-	return countLineContinous;
 }
 
 BOOL CMFCApplication1Dlg::PreTranslateMessage(MSG* pMsg)
@@ -526,6 +508,11 @@ void CMFCApplication1Dlg::OnSysCommand(UINT nID, LPARAM lParam)
 	}
 }
 
+void CMFCApplication1Dlg::OnEnChangeRichedit21()
+{
+	
+}
+
 void CMFCApplication1Dlg::OnPaint()
 {
 	if (IsIconic()) {
@@ -551,3 +538,13 @@ HCURSOR CMFCApplication1Dlg::OnQueryDragIcon() {
 void CMFCApplication1Dlg::OnEnChangeEditMessage() {}
 void CMFCApplication1Dlg::OnEnChangeEditMessageOther() {}
 void CMFCApplication1Dlg::OnEnChangeEditNotification() {}
+
+void CMFCApplication1Dlg::OnEnChangeRichedit22()
+{
+	// TODO:  If this is a RICHEDIT control, the control will not
+	// send this notification unless you override the CDialogEx::OnInitDialog()
+	// function and call CRichEditCtrl().SetEventMask()
+	// with the ENM_CHANGE flag ORed into the mask.
+
+	// TODO:  Add your control notification handler code here
+}
