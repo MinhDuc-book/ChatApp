@@ -134,7 +134,6 @@ std::string ActionHandler::HandleGetFriend(const std::vector<std::string>& field
     return rs;
 }
 
-// Logic gửi tin nhắn
 std::string ActionHandler::HandleSendMessage(const std::vector<std::string>& fields) {
     // Định dạng: 3|sender|receiver|content
     if (fields.size() < 4) return "FAIL|MISSING_PARAMETERS";
@@ -154,7 +153,6 @@ std::string ActionHandler::HandleSendMessage(const std::vector<std::string>& fie
     return isOnline;
 }
 
-// Logic load tin nhắn
 std::string ActionHandler::HandleLoadMessages(const std::vector<std::string>& fields) {
     //4|sender|receiver
     if (fields.size() < 3) return "FAIL|MISSING_PARAMETERS";

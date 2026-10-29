@@ -144,7 +144,6 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 		}
 	}
 
-	// Khóa ô nhập tin nhắn cho tới khi click chọn bạn bè
 	GetDlgItem(IDC_EDIT_MESSAGE)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BUTTON1)->EnableWindow(FALSE);
 
