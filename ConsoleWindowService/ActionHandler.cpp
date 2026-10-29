@@ -40,7 +40,6 @@ std::string ActionHandler::ProcessRequest(const std::string& rawMessage, SOCKET 
         return "FAIL|INVALID_ACTION_CODE";
     }
 
-    // Điều hướng tới đúng logic tương ứng
     switch (actionCode) {
     case ACTION_LOGIN:
         return HandleLogin(fields, callerSocket);
@@ -157,22 +156,18 @@ std::string ActionHandler::HandleSendMessage(const std::vector<std::string>& fie
 
 // Logic load tin nhắn
 std::string ActionHandler::HandleLoadMessages(const std::vector<std::string>& fields) {
-    // Định dạng yêu cầu từ client: 4|sender|receiver
+    //4|sender|receiver
     if (fields.size() < 3) return "FAIL|MISSING_PARAMETERS";
 
     CString sender(fields[1].c_str());
     CString receiver(fields[2].c_str());
 
-    // 1. Lấy danh sách tin nhắn từ Database
     std::vector<message> messages = g_db.LoadMessage(sender, receiver);
 
-    // 2. Bắt đầu chuỗi với: OK|<số lượng tin nhắn>
     std::string response = "OK|" + std::to_string(messages.size());
 
-    // 3. Đóng gói từng cặp sender và content vào chuỗi
-    // Cấu trúc chuỗi: OK|2|Nam|chao cau|Hoa|to day
     for (const auto& msg : messages) {
-        response += "|" + std::string(CT2A(msg.sender)) + "|" + std::string(CT2A(msg.content));
+        response += "|" + std::string(CT2A(msg.sender)) + "|" + std::string(CT2A(msg.content)) + "|" + std::string(CT2A(msg.sent_time));
     }
 
     return response;

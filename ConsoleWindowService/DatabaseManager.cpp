@@ -71,7 +71,7 @@ vector<message> DatabaseManager::LoadMessage(CString sender, CString receiver) {
     vector<message> rs;
     CT2A sder(sender);
     CT2A rver(receiver);
-    string sql = "SELECT sender, content FROM messages WHERE (sender = ? AND receiver = ?)"
+    string sql = "SELECT sender, content, sent_time FROM messages WHERE (sender = ? AND receiver = ?)"
         "OR (sender = ? AND receiver = ? ) ORDER BY sent_time ASC;";
 
     sqlite3_stmt* stmt = nullptr;
@@ -85,14 +85,10 @@ vector<message> DatabaseManager::LoadMessage(CString sender, CString receiver) {
 
     while (sqlite3_step(stmt) == SQLITE_ROW)
     {
-        // cast because sqlite3...text return const unsigned char*
-        const char* senderDB =
-            reinterpret_cast<const char*>(
-                sqlite3_column_text(stmt, 0));
-
-        const char* contentDB =
-            reinterpret_cast<const char*>(
-                sqlite3_column_text(stmt, 1));
+        // cast, because "sqlite3...text" return const unsigned char*
+        const char* senderDB = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+        const char* contentDB = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        const char* timeDB = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
 
         if (senderDB != nullptr && contentDB != nullptr)
         {
@@ -100,7 +96,7 @@ vector<message> DatabaseManager::LoadMessage(CString sender, CString receiver) {
 
             msg.sender = CString(senderDB);
             msg.content = CString(contentDB);
-
+            msg.sent_time = (timeDB != nullptr ? CString(timeDB) : CString(_T("")));
             rs.push_back(msg);
         }
     }

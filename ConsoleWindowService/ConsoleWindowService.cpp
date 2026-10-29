@@ -195,7 +195,7 @@ DWORD WINAPI ClientThread(LPVOID pParam)
         if (n <= 0) break;
         buf[n] = '\0';
         accumulated += buf;
-        // tách
+        
         size_t pos;
         while ((pos = accumulated.find('\n')) != std::string::npos)
         {
@@ -223,6 +223,11 @@ DWORD WINAPI ClientThread(LPVOID pParam)
                         username = line.substr(first + 1);
                     }
                 }
+            }
+
+            std::string packet = response + "\n";
+            if (!SendFull(s, packet.c_str(), (int)packet.length())) {
+                break;
             }
         }
     }
