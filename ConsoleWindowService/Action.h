@@ -34,13 +34,3 @@ public:
     CString curr_user;
     ActionGetFriend() { type = ACTION_GET_FRIENDS; };
 };
-
-// Dữ liệu cho hành động Chat/Nhắn tin
-class ActionSendMessage : public Action {
-public:
-    CString sender;
-    CString receiver;
-    CString content;
-
-    ActionSendMessage() { type = ACTION_SEND_MESSAGE; }
-};

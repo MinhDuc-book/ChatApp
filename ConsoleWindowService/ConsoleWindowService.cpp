@@ -195,20 +195,20 @@ DWORD WINAPI ClientThread(LPVOID pParam)
         if (n <= 0) break;
         buf[n] = '\0';
         accumulated += buf;
-        
+
         size_t pos;
         while ((pos = accumulated.find('\n')) != std::string::npos)
         {
             std::string line = accumulated.substr(0, pos);
             accumulated.erase(0, pos + 1);
-            // Bỏ \r nếu có
+            // Bỏ \r
             if (!line.empty() && line.back() == '\r') line.pop_back();
             if (line.empty()) continue;
 
             std::string response = ActionHandler::ProcessRequest(line, s);
 
-            if (response == "OK" && line.size() >= 2) {
-                // Nếu là mã 1
+            if (response.find("OK", 0) == 0 && line.size() >= 2) {
+                // 1
                 if (line[0] == '1' && line[1] == '|') {
                     size_t first = line.find('|');
                     size_t second = line.find('|', first + 1);
@@ -216,18 +216,13 @@ DWORD WINAPI ClientThread(LPVOID pParam)
                         username = line.substr(first + 1, second - first - 1);
                     }
                 }
-                // Nếu là mã 6
+                // 6
                 else if (line[0] == '6' && line[1] == '|') {
                     size_t first = line.find('|');
                     if (first != std::string::npos) {
                         username = line.substr(first + 1);
                     }
                 }
-            }
-
-            std::string packet = response + "\n";
-            if (!SendFull(s, packet.c_str(), (int)packet.length())) {
-                break;
             }
         }
     }
@@ -237,7 +232,6 @@ DWORD WINAPI ClientThread(LPVOID pParam)
     return 0;
 }
 
-//accept and create thread for each client
 DWORD WINAPI ServiceWorkerThread(LPVOID pParam)
 {
     while (WaitForSingleObject(ghSvcStopEvent, 0) == WAIT_TIMEOUT)
@@ -249,7 +243,7 @@ DWORD WINAPI ServiceWorkerThread(LPVOID pParam)
 
         int sel = select(0, &readSet, NULL, NULL, &tv);
         if (sel == SOCKET_ERROR) break;
-        if (sel == 0) continue;               // timeout
+        if (sel == 0) continue;// timeout
 
         SOCKET client = accept(gListenSocket, NULL, NULL);
         if (client == INVALID_SOCKET) continue;
@@ -266,7 +260,6 @@ DWORD WINAPI ServiceWorkerThread(LPVOID pParam)
         CloseHandle(hClient);                 
     }
 
-    // Wait all client stop
     while (InterlockedCompareExchange(&gActiveClients, 0, 0) > 0) Sleep(50);
 
     return 0;

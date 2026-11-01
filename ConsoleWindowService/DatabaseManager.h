@@ -16,7 +16,6 @@ struct message {
 	CString sender;
 	CString receiver;
 	CString content;
-	CString sent_time;
 };
 
 int CallBack(void* data, int argc, char** argv, char** errmsg);

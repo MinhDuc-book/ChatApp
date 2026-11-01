@@ -72,9 +72,8 @@ std::string ActionHandler::HandleRegisterClient(const std::vector<std::string>& 
     return "OK";
 }
 
-// Logic kiểm tra Đăng nhập
 std::string ActionHandler::HandleLogin(const std::vector<std::string>& fields, SOCKET callerSocket) {
-    // Định dạng: 1|username|password
+    //1|username|password
     if (fields.size() < 3) {
         return "FAIL|MISSING_PARAMETERS";
     }
@@ -86,7 +85,6 @@ std::string ActionHandler::HandleLogin(const std::vector<std::string>& fields, S
     int loginResult = g_db.CheckLogin(loginAction.username, loginAction.password);
 
     if (loginResult > 0) {
-        ClientManager::Register(fields[1], callerSocket);
         return ("OK");
     }
     else {
@@ -135,7 +133,7 @@ std::string ActionHandler::HandleGetFriend(const std::vector<std::string>& field
 }
 
 std::string ActionHandler::HandleSendMessage(const std::vector<std::string>& fields) {
-    // Định dạng: 3|sender|receiver|content
+    // 3|sender|receiver|content
     if (fields.size() < 4) return "FAIL|MISSING_PARAMETERS";
 
     bool ok = g_db.InsertMessage(CString(fields[3].c_str()), CString(fields[1].c_str()), CString(fields[2].c_str()));
@@ -154,7 +152,7 @@ std::string ActionHandler::HandleSendMessage(const std::vector<std::string>& fie
 }
 
 std::string ActionHandler::HandleLoadMessages(const std::vector<std::string>& fields) {
-    //4|sender|receiver
+    // 4|sender|receiver
     if (fields.size() < 3) return "FAIL|MISSING_PARAMETERS";
 
     CString sender(fields[1].c_str());
@@ -164,8 +162,9 @@ std::string ActionHandler::HandleLoadMessages(const std::vector<std::string>& fi
 
     std::string response = "OK|" + std::to_string(messages.size());
 
+
     for (const auto& msg : messages) {
-        response += "|" + std::string(CT2A(msg.sender)) + "|" + std::string(CT2A(msg.content)) + "|" + std::string(CT2A(msg.sent_time));
+        response += "|" + std::string(CT2A(msg.sender)) + "|" + std::string(CT2A(msg.content));
     }
 
     return response;
