@@ -251,7 +251,7 @@ bool CTestWindowServiceDlg::SendViaTCP(const char* targetIP, const CString& payl
 
 	sockaddr_in addr = {};
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons((u_short)9999);
+	addr.sin_port = htons((u_short)5555);
 	inet_pton(AF_INET, targetIP, &addr.sin_addr); // convert IP string to binary form
 
 	if (connect(s, (sockaddr*)&addr, sizeof(addr)) != SOCKET_ERROR) {
