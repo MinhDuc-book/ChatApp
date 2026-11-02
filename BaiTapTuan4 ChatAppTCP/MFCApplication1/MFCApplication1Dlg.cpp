@@ -252,7 +252,7 @@ bool CMFCApplication1Dlg::SendViaTCP(const char* targetIP, const CString& payloa
 	int sent = send(m_hSocket, asciiPayload, (int)strlen(asciiPayload), 0);
 	if (sent == SOCKET_ERROR) return false;
 
-	// Chờ luồng đọc nền TCPServerThread nhận phản hồi về (tối đa 5 giây)
+	// Chờ luồng đọc nền TCPServerThread nhận phản hồi
 	DWORD dwWait = WaitForSingleObject(m_hResponseEvent, 5000);
 	if (dwWait == WAIT_OBJECT_0) {
 		response = m_lastResponse;
