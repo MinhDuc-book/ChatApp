@@ -42,3 +42,26 @@ bool ClientManager::SendTo(const std::string& username, const std::string& msg) 
 	}
 	return true;
 }
+
+bool ClientManager::IsOnline(const std::string& username) {
+	std::lock_guard<std::mutex> lock(s_mutex);
+	return s_clients.find(username) != s_clients.end();
+}
+
+void ClientManager::Broadcast(const std::string& msg, const std::string& excludeUser) {
+	std::string packet = msg + "\n";
+	std::lock_guard<std::mutex> lock(s_mutex);
+	std::lock_guard<std::mutex> sendLock(s_sendMutex);
+
+	for (const auto& client : s_clients) {
+		if (client.first != excludeUser && client.second != INVALID_SOCKET) {
+			int total = 0;
+			int len = (int)packet.length();
+			while (total < len) {
+				int sent = send(client.second, packet.c_str() + total, len - total, 0);
+				if (sent == SOCKET_ERROR) return;
+				total = total + sent;
+			}
+		}
+	}
+}

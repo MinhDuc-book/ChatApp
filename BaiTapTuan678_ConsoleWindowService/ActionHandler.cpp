@@ -67,8 +67,10 @@ std::string ActionHandler::ProcessRequest(const std::string& rawMessage, SOCKET 
 }
 
 std::string ActionHandler::HandleRegisterClient(const std::vector<std::string>& fields, SOCKET callerSocket) {
+    // 6|
     if (fields.size() < 2) return "FAIL|MISSING_PARAMETERS";
     ClientManager::Register(fields[1], callerSocket);
+    ClientManager::Broadcast("7|ONLINE|" + fields[1], fields[1]);
     return "OK";
 }
 
@@ -112,22 +114,23 @@ std::string ActionHandler::HandleSignin(const std::vector<std::string>& fields) 
 }
 
 std::string ActionHandler::HandleGetFriend(const std::vector<std::string>& fields) {
-    if (fields.size() < 2)  {
-        return "FAIL|MISSING_PARAMETERS";
-    }
-    ActionGetFriend getFriendAction;
-    getFriendAction.curr_user = CString(fields[1].c_str());
-    std::vector<std::string> listFriend = g_db.AddListFriend(CString(getFriendAction.curr_user));
+    if (fields.size() < 2) return "FAIL|MISSING_PARAMETERS";
 
-    string rs = "";
-    if (listFriend.empty() == false) {
-        rs = "OK|" + std::to_string(listFriend.size());
-        for (int i = 0; i < listFriend.size(); ++i) {
-            rs = rs + "|" + listFriend[i];
-        }
-    }
-    else {
+    std::vector<std::string> listFriend = g_db.AddListFriend(CString(fields[1].c_str()));
+
+    if (listFriend.empty()) {
         return "FAIL|CANNOT_GET_FRIEND_LIST";
+    }
+
+    std::string rs = "OK|" + std::to_string(listFriend.size());
+    for (const auto& friendName : listFriend) {
+        // Nếu đang online trong Map thì thêm '+' vào tên gửi về
+        if (ClientManager::IsOnline(friendName)) {
+            rs += "|" + friendName + "+";
+        }
+        else {
+            rs += "|" + friendName;
+        }
     }
     return rs;
 }
@@ -152,19 +155,18 @@ std::string ActionHandler::HandleSendMessage(const std::vector<std::string>& fie
 }
 
 std::string ActionHandler::HandleLoadMessages(const std::vector<std::string>& fields) {
-    // 4|sender|receiver
     if (fields.size() < 3) return "FAIL|MISSING_PARAMETERS";
 
     CString sender(fields[1].c_str());
     CString receiver(fields[2].c_str());
 
     std::vector<message> messages = g_db.LoadMessage(sender, receiver);
-
     std::string response = "OK|" + std::to_string(messages.size());
 
-
     for (const auto& msg : messages) {
-        response += "|" + std::string(CT2A(msg.sender)) + "|" + std::string(CT2A(msg.content));
+        response += "|" + std::string(CT2A(msg.sender))
+            + "|" + std::string(CT2A(msg.content))
+            + "|" + std::string(CT2A(msg.sent_time));
     }
 
     return response;

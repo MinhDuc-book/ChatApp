@@ -20,4 +20,8 @@ public:
 	static SOCKET Find(const std::string& username);
 
 	static bool SendTo(const std::string& username, const std::string& msg);
+
+	static bool IsOnline(const std::string& username);
+
+	static void Broadcast(const std::string& msg, const std::string& excludeUser);
 };

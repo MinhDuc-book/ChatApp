@@ -224,9 +224,18 @@ DWORD WINAPI ClientThread(LPVOID pParam)
                     }
                 }
             }
+            std::string packet = response + "\n";
+            if (!SendFull(s, packet.c_str(), (int)packet.length())) {
+                break;
+            }
         }
     }
-    ClientManager::Remove(username);
+    
+    if (!username.empty()) {
+        ClientManager::Broadcast("7|OFFLINE|" + username, username);
+        ClientManager::Remove(username);
+    }
+    
     closesocket(s);
     InterlockedDecrement(&gActiveClients);
     return 0;

@@ -49,6 +49,8 @@ private:
 	void HandleIncoming(const CString& message);
 	std::vector<CString> ParseStringReceived(CString mess);
 	int CountContinousLineOther(int componentId);
+	void CMFCApplication1Dlg::ParseFriendItem(const CString& itemText, CString& baseName, bool& hasNewMsg, bool& isOnline);
+	CString CMFCApplication1Dlg::FormatFriendItem(const CString& baseName, bool hasNewMsg, bool isOnline);
 
 	void AppendChatMessage(const CString& sender, const CString& content, const CString& timeStr, bool isMe);
 

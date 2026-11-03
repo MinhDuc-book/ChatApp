@@ -116,7 +116,6 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 	m_pServerThread->m_bAutoDelete = FALSE;
 	m_pServerThread->ResumeThread();
 
-	// Đăng ký tài khoản hiện tại vào Server (để server lưu vào ClientManager)
 	CString loginPayload;
 	loginPayload.Format(_T("6|%s"), (LPCTSTR)m_currentUser);
 	CString loginResp;
@@ -216,7 +215,7 @@ UINT CMFCApplication1Dlg::TCPServerThread(LPVOID p)
 
 			CString msg = CA2T(line.c_str());
 
-			if (msg.Left(8) == _T("NEW_MSG|"))
+			if (msg.Left(8) == _T("NEW_MSG|") || msg.Left(2) == _T("7|"))
 			{
 				CString* pMsg = new CString(msg);
 				if (!::PostMessage(hwnd, WM_TCP_MSG, 0, (LPARAM)pMsg)) {
@@ -264,7 +263,7 @@ bool CMFCApplication1Dlg::SendViaTCP(const char* targetIP, const CString& payloa
 	return false;
 }
 
-// xử lí nhận thông báo NEW_MSG
+// xử lí nhận thông báo
 LRESULT CMFCApplication1Dlg::OnPipeMessage(WPARAM wParam, LPARAM lParam) {
 	CString* msg = reinterpret_cast<CString*>(lParam);
 	HandleIncoming(*msg);
@@ -272,133 +271,193 @@ LRESULT CMFCApplication1Dlg::OnPipeMessage(WPARAM wParam, LPARAM lParam) {
 	return 1;
 }
 
+void CMFCApplication1Dlg::ParseFriendItem(const CString& itemText, CString& baseName, bool& hasNewMsg, bool& isOnline)
+{
+	baseName = itemText;
+	baseName.TrimRight(_T("\r\n"));
+
+	// Kiểm tra "-->"
+	hasNewMsg = (baseName.Left(3) == _T("-->"));
+	if (hasNewMsg) baseName = baseName.Mid(3);
+
+	// Kiểm tra "+"
+	isOnline = (!baseName.IsEmpty() && baseName.Right(1) == _T("+"));
+	if (isOnline) baseName = baseName.Left(baseName.GetLength() - 1);
+}
+
+CString CMFCApplication1Dlg::FormatFriendItem(const CString& baseName, bool hasNewMsg, bool isOnline)
+{
+	CString res = baseName;
+	if (isOnline) res = res + _T("+");
+	if (hasNewMsg) res = _T("-->") + res;
+	return res;
+}
+
+
 void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 {
-
 	if (message.IsEmpty()) return;
 	CString msg = message;
 	msg.TrimRight(_T("\r\n"));
 
-	int curPos = 0;
-	CString prefix = msg.Tokenize(_T("|"), curPos);
-	CString sender = msg.Mid(8);
-
-	if (prefix != _T("NEW_MSG") || sender.IsEmpty()) return;
-
 	CListBox* pListBox = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
 	if (!pListBox) return;
 
+	// Lấy thông tin người hiện tại đang được chọn (để giữ vị trí chọn sau khi cập nhật listbox)
 	int curSel = pListBox->GetCurSel();
-	CString currentSelectedFriend = _T("");
+	CString curSelectedBaseName = _T("");
 	if (curSel != LB_ERR) {
-		pListBox->GetText(curSel, currentSelectedFriend);
-		currentSelectedFriend.TrimRight(_T("\r\n"));
-		if (currentSelectedFriend.Left(3) == _T("-->")) {
-			currentSelectedFriend = currentSelectedFriend.Mid(3);
-		}
+		CString text;
+		pListBox->GetText(curSel, text);
+		bool hasNewMsg, isOnline;
+		ParseFriendItem(text, curSelectedBaseName, hasNewMsg, isOnline);
 	}
 
-	
-
-	if (curSel != LB_ERR && currentSelectedFriend == sender)
+	// 7|ONLINE|user hoặc 7|OFFLINE|user
+	if (msg.Left(2) == _T("7|"))
 	{
-		LoadChatToUI(sender);
-	}
-	else
-	{
-		SetDlgItemText(IDC_EDIT_NOTIFICATION, _T("New message from: ") + sender);
-		int index = pListBox->FindStringExact(-1, sender);
-		if (index == LB_ERR) {
-			index = pListBox->FindStringExact(-1, _T("-->") + sender);
-		}
+		int curPos = 0;
+		msg.Tokenize(_T("|"), curPos); // Bỏ qua "7"
+		CString status = msg.Tokenize(_T("|"), curPos);
+		CString targetUser = msg.Tokenize(_T("|"), curPos);
 
-		if (index != LB_ERR) {
-			pListBox->DeleteString(index);
-		}
+		bool setOnline = (status == _T("ONLINE"));
 
-		// Đẩy lên vị trí 0 (đầu danh sách)
-		pListBox->InsertString(0, _T("-->") + sender);
+		for (int i = 0; i < pListBox->GetCount(); ++i)
+		{
+			CString itemText, baseName;
+			bool hasNewMsg, isOnline;
+			pListBox->GetText(i, itemText);
+			ParseFriendItem(itemText, baseName, hasNewMsg, isOnline);
 
-		// Giữ nguyên con trỏ người bạn đang chat dở
-		if (!currentSelectedFriend.IsEmpty()) {
-			int newSel = pListBox->FindStringExact(-1, currentSelectedFriend);
-			if (newSel == LB_ERR) {
-				newSel = pListBox->FindStringExact(-1, _T("-->") + currentSelectedFriend);
+			if (baseName == targetUser)
+			{
+				CString newText = FormatFriendItem(baseName, hasNewMsg, setOnline);
+				pListBox->DeleteString(i);
+				pListBox->InsertString(i, newText);
+				break;
 			}
-			if (newSel != LB_ERR) {
-				pListBox->SetCurSel(newSel);
+		}
+	}
+
+	//NEW_MSG|sender
+	else if (msg.Left(8) == _T("NEW_MSG|"))
+	{
+		CString sender = msg.Mid(8);
+
+		//đúng người
+		if (curSel != LB_ERR && curSelectedBaseName == sender)
+		{
+			LoadChatToUI(sender);
+		}
+		//người khác
+		else
+		{
+			bool wasOnline = false;
+			for (int i = 0; i < pListBox->GetCount(); ++i)
+			{
+				CString itemText, baseName;
+				bool hasNewMsg, isOnline;
+				pListBox->GetText(i, itemText);
+				ParseFriendItem(itemText, baseName, hasNewMsg, isOnline);
+
+				if (baseName == sender) {
+					wasOnline = isOnline;
+					pListBox->DeleteString(i);
+					break;
+				}
+			}
+			// Đẩy lên đầu danh sách (vị trí 0) kèm tiền tố "-->"
+			CString topItem = FormatFriendItem(sender, true, wasOnline);
+			pListBox->InsertString(0, topItem);
+		}
+	}
+
+	if (!curSelectedBaseName.IsEmpty()) {
+		for (int i = 0; i < pListBox->GetCount(); ++i) {
+			CString text, baseName;
+			bool dummy1, dummy2;
+			pListBox->GetText(i, text);
+			ParseFriendItem(text, baseName, dummy1, dummy2);
+			if (baseName == curSelectedBaseName) {
+				pListBox->SetCurSel(i);
+				break;
 			}
 		}
 	}
 }
 
-// GỬI TIN NHẮN KHI BẤM NÚT SEND
 void CMFCApplication1Dlg::OnBnClickedButton1()
 {
 	CString content;
 	GetDlgItemText(IDC_EDIT_MESSAGE, content);
 	content.Trim();
 
-	CListBox* pListBox = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
-	int nIndex = pListBox->GetCurSel();
-	if (nIndex == LB_ERR) {
-		AfxMessageBox(_T("Vui lòng chọn bạn bè để chat!"));
+	if (content.IsEmpty()) {
 		return;
 	}
-	if (content.IsEmpty()) return;
 
-	CString receiverName;
-	pListBox->GetText(nIndex, receiverName);
-	receiverName.TrimRight(_T("\r\n"));
-	//if (receiverName.Left(3) == _T("-->")) {
-	//	receiverName = receiverName.Mid(3);
-	//}
-
-	CString sendingMessage = _T("3|") + m_currentUser + _T("|") + receiverName + _T("|") + content;
-	CString receive = _T("");
-
-	if (!SendViaTCP("127.0.0.1", sendingMessage, receive)) {
-		AfxMessageBox(_T("Không thể gửi tin nhắn!"));
+	CListBox* pListBox = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
+	int sel = pListBox->GetCurSel();
+	if (sel == LB_ERR) {
+		AfxMessageBox(_T("Vui lòng chọn người bạn muốn gửi tin nhắn!"));
+		return;
 	}
-	else {
-		if (receive.Left(2) == _T("OK")) {
-			SetDlgItemText(IDC_EDIT_MESSAGE, _T(""));
-			LoadChatToUI(receiverName);
-		}
-		else {
-			AfxMessageBox(_T("Gửi thất bại:\r\n") + receive);
-		}
+
+	CString itemText, receiverName;
+	bool dummy1, dummy2;
+	pListBox->GetText(sel, itemText);
+	ParseFriendItem(itemText, receiverName, dummy1, dummy2); 
+
+	CString payload = _T("3|") + m_currentUser + _T("|") + receiverName + _T("|") + content;
+	CString response = _T("");
+
+	if (!SendViaTCP("127.0.0.1", payload, response)) {
+		AfxMessageBox(_T("Không thể kết nối tới Server!"));
+		return;
 	}
+
+	if (response.Left(2) == _T("OK"))
+	{
+		SetDlgItemText(IDC_EDIT_MESSAGE, _T(""));
+
+		LoadChatToUI(receiverName);
+	}
+	else
+	{
+		AfxMessageBox(_T("Gửi tin nhắn thất bại:\r\n") + response);
+	}
+
+	GetDlgItem(IDC_EDIT_MESSAGE)->SetFocus();
 }
 
 void CMFCApplication1Dlg::OnLbnSelchangeListFriend()
 {
-	CListBox* listFriend = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
-	int sel = listFriend->GetCurSel();
+	CListBox* pListBox = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
+	int sel = pListBox->GetCurSel();
+	if (sel == LB_ERR) return;
 
-	if (sel != LB_ERR)
+	GetDlgItem(IDC_EDIT_MESSAGE)->EnableWindow(TRUE);
+	GetDlgItem(IDC_BUTTON1)->EnableWindow(TRUE);
+
+	CString itemText, baseName;
+	bool hasNewMsg, isOnline;
+	pListBox->GetText(sel, itemText);
+	ParseFriendItem(itemText, baseName, hasNewMsg, isOnline);
+
+	if (hasNewMsg)
 	{
-		GetDlgItem(IDC_EDIT_MESSAGE)->EnableWindow(TRUE);
-		GetDlgItem(IDC_BUTTON1)->EnableWindow(TRUE);
-
-		CString friendName;
-		listFriend->GetText(sel, friendName);
-		friendName.TrimRight(_T("\r\n"));
-
-		SetDlgItemText(IDC_EDIT_MESSAGE_ME, _T(""));
-		SetDlgItemText(IDC_EDIT_MESSAGE_OTHER, _T(""));
-		SetDlgItemText(IDC_EDIT_MESSAGE, _T(""));
-
-		// Nếu tên có tiền tố "-->" thì gỡ bỏ khi người dùng click vào
-		if (friendName.Left(3) == _T("-->")) {
-			friendName = friendName.Mid(3);
-			listFriend->DeleteString(sel);
-			listFriend->InsertString(sel, friendName);
-			listFriend->SetCurSel(sel);
-		}
-
-		LoadChatToUI(friendName);
+		CString cleanItem = FormatFriendItem(baseName, false, isOnline);
+		pListBox->DeleteString(sel);
+		pListBox->InsertString(sel, cleanItem);
+		pListBox->SetCurSel(sel);
 	}
+
+	SetDlgItemText(IDC_EDIT_MESSAGE, _T(""));
+
+	LoadChatToUI(baseName);
+
+	GetDlgItem(IDC_EDIT_MESSAGE)->SetFocus();
 }
 
 void CMFCApplication1Dlg::AppendChatMessage(const CString& sender, const CString& content, const CString &timeStr, bool isMe) {
