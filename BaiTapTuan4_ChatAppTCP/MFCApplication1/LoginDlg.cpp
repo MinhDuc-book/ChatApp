@@ -108,7 +108,7 @@ void CLoginDlg::OnBnClickedButtonLogin()
 
 }
 
-bool CLoginDlg::SendViaTCP(const char* targetIP, const CString& payload, CString &response)
+bool CLoginDlg::SendViaTCP(const char* targetIP, const CString& payload, CString& response)
 {
 	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (s == INVALID_SOCKET) return false;

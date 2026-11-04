@@ -63,6 +63,7 @@ BEGIN_MESSAGE_MAP(CMFCApplication1Dlg, CDialogEx)
 	ON_MESSAGE(WM_TCP_MSG, &CMFCApplication1Dlg::OnPipeMessage)
 	ON_WM_DESTROY()
 	ON_EN_CHANGE(IDC_RICHEDIT21, &CMFCApplication1Dlg::OnEnChangeRichedit21)
+	ON_STN_CLICKED(IDC_STATIC_NOTI, &CMFCApplication1Dlg::OnStnClickedStaticNoti)
 END_MESSAGE_MAP()
 
 BOOL CMFCApplication1Dlg::OnInitDialog()
@@ -128,7 +129,7 @@ BOOL CMFCApplication1Dlg::OnInitDialog()
 	if (SendViaTCP("127.0.0.1", payload, response) && response.Left(2) == _T("OK")) {
 		CListBox* listFriend = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
 		listFriend->ResetContent();
-		SetDlgItemText(IDC_EDIT_CURR_USER, m_currentUser);
+		SetDlgItemText(IDC_STATIC_USERNAME, m_currentUser);
 
 		int curPos = 0;
 		response.Tokenize(_T("|"), curPos); // Bỏ qua "OK"
@@ -303,7 +304,6 @@ void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 	CListBox* pListBox = (CListBox*)GetDlgItem(IDC_LIST_FRIEND);
 	if (!pListBox) return;
 
-	// Lấy thông tin người hiện tại đang được chọn (để giữ vị trí chọn sau khi cập nhật listbox)
 	int curSel = pListBox->GetCurSel();
 	CString curSelectedBaseName = _T("");
 	if (curSel != LB_ERR) {
@@ -340,19 +340,27 @@ void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 		}
 	}
 
-	//NEW_MSG|sender
+	//NEW_MSG|sender|content|sent_time
 	else if (msg.Left(8) == _T("NEW_MSG|"))
 	{
-		CString sender = msg.Mid(8);
+		int curPos = 0;
+		msg.Tokenize(_T("|"), curPos);
+		CString sender = msg.Tokenize(_T("|"), curPos);
+		CString content = msg.Tokenize(_T("|"), curPos);
+		CString sentTime = msg.Tokenize(_T("|"), curPos);
 
 		//đúng người
 		if (curSel != LB_ERR && curSelectedBaseName == sender)
 		{
-			LoadChatToUI(sender);
+			//LoadChatToUI(sender);
+			AppendChatMessage(sender, content, sentTime, false);
 		}
 		//người khác
 		else
 		{
+			CString noti = _T("New message from: ") + sender;
+			SetDlgItemText(IDC_STATIC_NOTI, noti);
+
 			bool wasOnline = false;
 			for (int i = 0; i < pListBox->GetCount(); ++i)
 			{
@@ -367,7 +375,7 @@ void CMFCApplication1Dlg::HandleIncoming(const CString& message)
 					break;
 				}
 			}
-			// Đẩy lên đầu danh sách (vị trí 0) kèm tiền tố "-->"
+			// đẩy lên và thêm -->
 			CString topItem = FormatFriendItem(sender, true, wasOnline);
 			pListBox->InsertString(0, topItem);
 		}
@@ -421,7 +429,21 @@ void CMFCApplication1Dlg::OnBnClickedButton1()
 	{
 		SetDlgItemText(IDC_EDIT_MESSAGE, _T(""));
 
-		LoadChatToUI(receiverName);
+		// chỉ cần insert
+		// cắt nhỏ 50 tin nhắn
+		//LoadChatToUI(receiverName);
+		
+		//OK|sent_time
+		CString serverTime = _T("");
+		int curPos = 0;
+		response.Tokenize(_T("|"), curPos);
+		if (curPos != -1) {
+			serverTime = response.Tokenize(_T("|"), curPos);
+		}
+
+		//CTime now = CTime::GetCurrentTime();
+		//CString currTimeStr = now.Format(_T("%Y-%m-%d %H:%M:%S"));
+		AppendChatMessage(m_currentUser, content, serverTime, true);
 	}
 	else
 	{
@@ -537,22 +559,22 @@ BOOL CMFCApplication1Dlg::PreTranslateMessage(MSG* pMsg)
 
 void CMFCApplication1Dlg::OnVscrollMessageOther()
 {
-	if (m_syncScrolling) return;
-	m_syncScrolling = true;
-	CEdit* pOther = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_OTHER);
-	CEdit* pMe = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_ME);
-	pMe->LineScroll(pOther->GetFirstVisibleLine() - pMe->GetFirstVisibleLine());
-	m_syncScrolling = false;
+	//if (m_syncScrolling) return;
+	//m_syncScrolling = true;
+	//CEdit* pOther = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_OTHER);
+	//CEdit* pMe = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_ME);
+	//pMe->LineScroll(pOther->GetFirstVisibleLine() - pMe->GetFirstVisibleLine());
+	//m_syncScrolling = false;
 }
 
 void CMFCApplication1Dlg::OnVscrollMessageMe()
 {
-	if (m_syncScrolling) return;
-	m_syncScrolling = true;
-	CEdit* pMe = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_ME);
-	CEdit* pOther = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_OTHER);
-	pOther->LineScroll(pMe->GetFirstVisibleLine() - pOther->GetFirstVisibleLine());
-	m_syncScrolling = false;
+	//if (m_syncScrolling) return;
+	//m_syncScrolling = true;
+	//CEdit* pMe = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_ME);
+	//CEdit* pOther = (CEdit*)GetDlgItem(IDC_EDIT_MESSAGE_OTHER);
+	//pOther->LineScroll(pMe->GetFirstVisibleLine() - pOther->GetFirstVisibleLine());
+	//m_syncScrolling = false;
 }
 
 void CMFCApplication1Dlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -605,4 +627,9 @@ void CMFCApplication1Dlg::OnEnChangeRichedit22()
 	// with the ENM_CHANGE flag ORed into the mask.
 
 	// TODO:  Add your control notification handler code here
+}
+
+void CMFCApplication1Dlg::OnStnClickedStaticNoti()
+{
+	// TODO: Add your control notification handler code here
 }

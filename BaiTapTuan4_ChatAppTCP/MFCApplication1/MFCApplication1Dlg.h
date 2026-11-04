@@ -88,4 +88,5 @@ public:
 
 	afx_msg void OnEnChangeEditNotification();
 	afx_msg void OnEnChangeRichedit22();
+	afx_msg void OnStnClickedStaticNoti();
 };

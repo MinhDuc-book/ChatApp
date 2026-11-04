@@ -124,7 +124,8 @@ std::string ActionHandler::HandleGetFriend(const std::vector<std::string>& field
 
     std::string rs = "OK|" + std::to_string(listFriend.size());
     for (const auto& friendName : listFriend) {
-        // Nếu đang online trong Map thì thêm '+' vào tên gửi về
+
+        // đang online thì thêm '+' vào tên gửi về
         if (ClientManager::IsOnline(friendName)) {
             rs += "|" + friendName + "+";
         }
@@ -138,20 +139,25 @@ std::string ActionHandler::HandleGetFriend(const std::vector<std::string>& field
 std::string ActionHandler::HandleSendMessage(const std::vector<std::string>& fields) {
     // 3|sender|receiver|content
     if (fields.size() < 4) return "FAIL|MISSING_PARAMETERS";
+    std::string sender = fields[1];
+    std::string receiver = fields[2];
+    std::string content = fields[3];
 
     bool ok = g_db.InsertMessage(CString(fields[3].c_str()), CString(fields[1].c_str()), CString(fields[2].c_str()));
-
-    // gửi sang bên đầu bên kia
     if (!ok) return "FAIL|CANNOT_SAVE_MESSAGE";
-    std::string isOnline = "";
-    if (ClientManager::SendTo(fields[2], "NEW_MSG|" + fields[1])) {
-        isOnline = "OK|MESSAGE_SENT_ONLINE";
-    }
-    else {
-        isOnline = "OK|MESSAGE_SENT_OFFLINE";
-    }
 
-    return isOnline;
+    SYSTEMTIME st;
+    GetLocalTime(&st);
+    char timeBuf[64];
+    sprintf_s(timeBuf, "%04d-%02d-%02d %02d:%02d:%02d", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+    std::string sent_time = timeBuf;
+
+    std::string isSend = "";
+    std::string forwardMsg = "NEW_MSG|" + sender + "|" + content + "|" + sent_time;
+    
+    ClientManager::SendTo(receiver, forwardMsg);
+
+    return "OK|" + sent_time;
 }
 
 std::string ActionHandler::HandleLoadMessages(const std::vector<std::string>& fields) {
